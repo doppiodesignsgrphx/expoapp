@@ -86,3 +86,11 @@ dd { margin: 0; overflow-wrap: anywhere; }
   #print-root { display: block; }
   #print-root .badge { page-break-after: avoid; }
 }
+
+/* Scanner tracking marks: navy while looking, green once a scan is accepted.
+   The scanner library sets its own colors inline, so these need !important. */
+.scanner { position: relative; }
+.scanner .scan-region-highlight-svg,
+.scanner .code-outline-highlight { stroke: var(--navy) !important; stroke-width: 6 !important; stroke-linecap: square !important; stroke-linejoin: miter !important; }
+.scanner.scanned .scan-region-highlight-svg,
+.scanner.scanned .code-outline-highlight { stroke: #1a8f4c !important; }

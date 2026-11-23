@@ -15,6 +15,7 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack }) {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [scanned, setScanned] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [message, setMessage] = useState(null);
   const latest = useRef(0);
@@ -82,6 +83,14 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack }) {
       const report = (ok, msg) => {
         setMessage({ ok, text: msg });
         signal(ok);
+        if (ok) {
+          // Show the tracking marks in green for a moment, then close the camera.
+          setScanned(true);
+          setTimeout(() => {
+            setScanning(false);
+            setScanned(false);
+          }, 700);
+        }
       };
       setMessage(null);
       const ticket = text.match(TICKET_CODE);
@@ -165,7 +174,7 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack }) {
         <button className="btn" onClick={() => { primeFeedback(); setScanning((s) => !s); }}>{scanning ? 'Hide scanner' : 'Scan a badge or ticket'}</button>
       </div>
 
-      {scanning && <Scanner onScan={handleScan} onClose={() => setScanning(false)} />}
+      {scanning && <Scanner onScan={handleScan} onClose={() => setScanning(false)} scanned={scanned} />}
       {message && <p className={`notice ${message.ok ? 'ok' : 'error'}`} role="status">{message.text}</p>}
       {error && <p className="notice error">{error}</p>}
 

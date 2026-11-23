@@ -42,6 +42,7 @@ export default function Badge({ attendee, event }) {
 
   async function print() {
     if (!desktop) {
+      setResult({ ok: true, message: `Printing ${fullName(attendee)}. In the print dialog choose the Brother printer and the 62mm roll, with margins set to none.` });
       window.print();
       return;
     }
@@ -56,7 +57,8 @@ export default function Badge({ attendee, event }) {
         code,
         qrUrl: qr,
       });
-      setResult(await desktopApi().print_badge(png));
+      const reply = await desktopApi().print_badge(png);
+      setResult(reply.ok ? { ok: true, message: `Sent ${fullName(attendee)} straight to the badge printer.` } : reply);
     } catch (err) {
       setResult({ ok: false, message: err.message || 'Printing failed.' });
     } finally {
@@ -70,10 +72,8 @@ export default function Badge({ attendee, event }) {
       <button className="btn" disabled={!qr || busy} onClick={print}>
         {busy ? 'Printing' : 'Print badge'}
       </button>
-      {result && <p className={`notice ${result.ok ? 'ok' : 'error'}`} role="status">{result.message}</p>}
-      {desktop
-        ? <p className="hint">Prints {fullName(attendee)} straight to the badge printer.</p>
-        : <p className="hint">Printing {fullName(attendee)}. In the print dialog choose the Brother printer and the 62mm roll, with margins set to none.</p>}
+      {result && !result.ok && <p className="notice error" role="status">{result.message}</p>}
+      {result && result.ok && <p className="hint" role="status">{result.message}</p>}
       {createPortal(<BadgeFace attendee={attendee} event={event} qr={qr} code={code} />, document.getElementById('print-root'))}
     </div>
   );
