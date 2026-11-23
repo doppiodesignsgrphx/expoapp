@@ -1,0 +1,79 @@
+:root {
+  --navy: #1c4177;
+  --gold: #fcd515;
+  --ink: #111827;
+  --muted: #5b6472;
+  --line: #d5dae2;
+  --bg: #f3f5f8;
+  --ok: #14633a;
+  --ok-bg: #e4f4ea;
+  --err: #9b1c1c;
+  --err-bg: #fbe9e9;
+}
+
+* { box-sizing: border-box; border-radius: 0; }
+html, body { margin: 0; }
+body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: var(--ink); background: var(--bg); line-height: 1.4; }
+
+.bar { background: var(--navy); color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 4px solid var(--gold); }
+.brand { font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+
+main { padding: 16px; }
+.panel { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid var(--line); padding: 20px; display: grid; gap: 14px; }
+.panel.narrow { max-width: 420px; }
+h1 { font-size: 1.35rem; margin: 0; text-transform: uppercase; letter-spacing: 0.04em; color: var(--navy); }
+h2 { font-size: 1.15rem; margin: 0; }
+
+label { display: grid; gap: 6px; font-weight: 600; font-size: 0.9rem; }
+input { font: inherit; padding: 12px; border: 1px solid #8a94a3; width: 100%; background: #fff; color: var(--ink); }
+input:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+.btn { font: inherit; font-weight: 700; padding: 12px 18px; border: 2px solid var(--navy); background: var(--navy); color: #fff; cursor: pointer; }
+.btn.secondary { background: #fff; color: var(--navy); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.link { font: inherit; background: none; border: 0; padding: 0; color: var(--navy); text-decoration: underline; cursor: pointer; justify-self: start; }
+.link.light { color: #fff; }
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row input { flex: 1 1 220px; width: auto; }
+.hint { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+.notice { margin: 0; padding: 12px; font-weight: 600; border-left: 6px solid; }
+.notice.ok { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+.notice.error { background: var(--err-bg); color: var(--err); border-color: var(--err); }
+
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.list-item { font: inherit; width: 100%; text-align: left; display: grid; gap: 2px; padding: 12px; border: 1px solid var(--line); background: #fff; cursor: pointer; color: var(--ink); }
+.list-item:hover { border-color: var(--navy); }
+.list-item span { color: var(--muted); font-size: 0.9rem; }
+.tag { font-weight: 700; }
+.tag.in { color: var(--ok); }
+
+.detail { border: 2px solid var(--navy); padding: 16px; display: grid; gap: 12px; }
+dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; }
+dt { color: var(--muted); }
+dd { margin: 0; overflow-wrap: anywhere; }
+
+.scanner { display: grid; gap: 10px; }
+.scanner video { width: 100%; max-height: 60vh; background: #000; object-fit: cover; }
+
+/* Badge. 62mm wide to match Brother DK continuous tape. */
+.badge-wrap { display: grid; gap: 10px; justify-items: start; }
+.badge { width: 62mm; height: 100mm; padding: 4mm; background: #fff; color: #000; border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; text-align: center; overflow: hidden; }
+.badge-event { font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3mm; }
+.badge-first { font-size: 24pt; font-weight: 800; line-height: 1.05; overflow-wrap: anywhere; }
+.badge-last { font-size: 16pt; font-weight: 600; line-height: 1.1; overflow-wrap: anywhere; }
+.badge-ticket { font-size: 9pt; margin-top: 2mm; }
+.badge-qr { width: 34mm; height: 34mm; margin-top: auto; image-rendering: pixelated; }
+.badge-code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 7pt; margin-top: 1.5mm; letter-spacing: 0.04em; }
+
+#print-root { display: none; }
+
+@page { size: 62mm 100mm; margin: 0; }
+
+@media print {
+  html, body { background: #fff; }
+  #root { display: none; }
+  #print-root { display: block; }
+  #print-root .badge { border: 0; page-break-after: avoid; }
+}
