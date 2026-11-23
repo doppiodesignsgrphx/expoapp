@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { badgeCode, fullName, meta } from '../api.js';
+import { desktopApi, useDesktop } from '../desktop.js';
+import { renderBadgePng } from '../badgeImage.js';
 
-// The badge is drawn twice: once on screen as a preview, and once into
-// #print-root, which is the only thing visible when the page prints.
-// Sized for Brother DK continuous 62mm tape (see @page in styles.css).
+// The badge is drawn on screen as a preview and into #print-root, which is the
+// only thing visible when the page prints through the browser dialog.
+// In the desktop app, Print sends an image straight to the printer instead.
 function BadgeFace({ attendee, event, qr, code }) {
   return (
     <div className="badge">
@@ -21,23 +23,54 @@ function BadgeFace({ attendee, event, qr, code }) {
 
 export default function Badge({ attendee, event }) {
   const code = badgeCode(event.id, attendee);
+  const desktop = useDesktop();
   const [qr, setQr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
 
   useEffect(() => {
     let live = true;
+    setResult(null);
     QRCode.toDataURL(code, { errorCorrectionLevel: 'M', margin: 0, width: 600 }).then((url) => live && setQr(url));
     return () => {
       live = false;
     };
   }, [code]);
 
+  async function print() {
+    if (!desktop) {
+      window.print();
+      return;
+    }
+    setBusy(true);
+    setResult(null);
+    try {
+      const png = await renderBadgePng({
+        eventName: event?.name,
+        first: meta(attendee, '_attendee_name') || attendee?.name,
+        last: meta(attendee, '_attendee_last_name'),
+        ticket: meta(attendee, '_ticket_name'),
+        code,
+        qrUrl: qr,
+      });
+      setResult(await desktopApi().print_badge(png));
+    } catch (err) {
+      setResult({ ok: false, message: err.message || 'Printing failed.' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="badge-wrap">
       <BadgeFace attendee={attendee} event={event} qr={qr} code={code} />
-      <button className="btn" disabled={!qr} onClick={() => window.print()}>
-        Print badge
+      <button className="btn" disabled={!qr || busy} onClick={print}>
+        {busy ? 'Printing' : 'Print badge'}
       </button>
-      <p className="hint">Printing {fullName(attendee)}. In the print dialog choose the Brother printer and the 62mm roll, with margins set to none.</p>
+      {result && <p className={`notice ${result.ok ? 'ok' : 'error'}`} role="status">{result.message}</p>}
+      {desktop
+        ? <p className="hint">Prints {fullName(attendee)} straight to the badge printer.</p>
+        : <p className="hint">Printing {fullName(attendee)}. In the print dialog choose the Brother printer and the 62mm roll, with margins set to none.</p>}
       {createPortal(<BadgeFace attendee={attendee} event={event} qr={qr} code={code} />, document.getElementById('print-root'))}
     </div>
   );

@@ -12,6 +12,8 @@ First working piece, for registration staff:
 4. Check in, or undo a check-in
 5. Print a badge on a Brother QL-820NWB (62mm continuous roll) through the browser print dialog
 
+Registration computers can also run the desktop app in `desktop/`, which shows this same app in its own window and prints badges straight to the printer with no dialog.
+
 Not built yet: attendee sign-in and schedule, session scanning for CE credit, payments, offline queue, leadership dashboard.
 
 ## Run it

@@ -1,0 +1,32 @@
+name: Desktop app
+
+# Builds the desktop app for macOS and Windows. The finished apps appear as
+# downloadable artifacts on the workflow run page.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install -r desktop/requirements.txt pyinstaller
+      - name: Build
+        run: pyinstaller --noconfirm --windowed --onefile --name "NC EMS Expo" --paths desktop desktop/app.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nc-ems-expo-${{ matrix.os }}
+          path: dist/
