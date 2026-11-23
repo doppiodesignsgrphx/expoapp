@@ -3,7 +3,7 @@ import QrScanner from 'qr-scanner';
 
 // Camera QR scanner. Calls onScan(text) once per distinct code, ignoring
 // repeats of the same code for three seconds so a held badge is not read twice.
-export default function Scanner({ onScan, onClose }) {
+export default function Scanner({ onScan, onClose, scanned = false }) {
   const videoRef = useRef(null);
   const last = useRef({ text: '', at: 0 });
   const handler = useRef(onScan);
@@ -34,7 +34,7 @@ export default function Scanner({ onScan, onClose }) {
   }, []);
 
   return (
-    <div className="scanner">
+    <div className={`scanner${scanned ? ' scanned' : ''}`}>
       <video ref={videoRef} muted playsInline />
       {error && <p className="notice error">{error}</p>}
       <button className="btn secondary" onClick={onClose}>Close scanner</button>
