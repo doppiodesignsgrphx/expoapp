@@ -33,34 +33,49 @@ export async function renderBadgePng({ eventName, first, last, ticket, code, qrU
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#000';
   ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const max = W - 80;
+  const band = 96;
+
+  // Black band with the event name in white.
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, band);
+  ctx.fillStyle = '#fff';
+  fit(ctx, (eventName || '').toUpperCase(), 700, 46, 26, max);
+  ctx.fillText((eventName || '').toUpperCase(), W / 2, band / 2 + 2);
+
+  // Border around the whole badge.
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, W - 6, H - 6);
+
+  ctx.fillStyle = '#000';
   ctx.textBaseline = 'top';
-
-  const max = W - 60;
-  let y = 50;
-
-  fit(ctx, (eventName || '').toUpperCase(), 700, 40, 26, max);
-  ctx.fillText((eventName || '').toUpperCase(), W / 2, y);
-  y += 110;
+  let y = band + 70;
 
   const firstSize = fit(ctx, first || '', 800, 150, 60, max);
   ctx.fillText(first || '', W / 2, y);
   y += firstSize + 14;
 
   if (last) {
-    const lastSize = fit(ctx, last, 600, 96, 44, max);
+    const lastSize = fit(ctx, last, 600, 92, 44, max);
     ctx.fillText(last, W / 2, y);
-    y += lastSize + 26;
+    y += lastSize + 30;
   }
 
   if (ticket) {
-    fit(ctx, ticket, 400, 38, 26, max);
-    ctx.fillText(ticket, W / 2, y);
+    fit(ctx, ticket.toUpperCase(), 700, 34, 24, max);
+    ctx.fillText(ticket.toUpperCase(), W / 2, y);
   }
 
-  const qrSize = 400;
+  const qrSize = 380;
   const qrTop = H - qrSize - 110;
+
+  // Divider between the name block and the code.
+  ctx.fillRect(40, qrTop - 50, W - 80, 5);
+
   if (qrUrl) {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(await loadImage(qrUrl), (W - qrSize) / 2, qrTop, qrSize, qrSize);
