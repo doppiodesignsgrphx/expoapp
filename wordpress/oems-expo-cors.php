@@ -21,7 +21,7 @@ function oems_expo_allowed_origins() {
 	$origins = array(
 		'http://localhost:5173', // Local development.
 		'http://localhost:4173', // Local preview of a build.
-		// 'https://YOUR-TEMPORARY-DOMAIN', // Staging app address. Add it here.
+		'https://savvy-coral-mongoose-81.hostingersite.com', // Staging app (Hostinger temporary domain).
 	);
 	return apply_filters( 'oems_expo_allowed_origins', $origins );
 }
