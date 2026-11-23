@@ -1,6 +1,8 @@
 // Thin client for the WP Event Manager REST API.
 // Contract taken from request logs captured on staging, 2026-11-21 to 2026-11-23.
 
+import { clearCache } from './cache.js';
+
 const BASE = (import.meta.env.VITE_API_BASE || 'https://upgrade.doppiodesignsgrphx.com/wp-json/wpem').replace(/\/$/, '');
 
 const TOKEN_KEY = 'expoapp.token';
@@ -27,6 +29,7 @@ export const session = {
   clear() {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
+    clearCache();
   },
 };
 
@@ -95,32 +98,52 @@ export async function login(username, password) {
   return data.user;
 }
 
-export async function listEvents({ search, withRegistrations } = {}) {
-  const events = [];
-  let page = 1;
-  let pages = 1;
-  do {
-    const data = await request('/events', {
-      query: { per_page: 100, page, search, registrations: withRegistrations ? true : undefined, status: search || withRegistrations ? undefined : 'publish' },
-    });
-    events.push(...(data.events || []));
-    pages = Number(data.total_pages || 1);
-    page += 1;
-  } while (page <= pages && page <= 20);
-  return events;
+// How many records to ask for per request. The site caps this (100 by default).
+// If the cap is raised on the site, set VITE_PAGE_SIZE to match; the app falls
+// back to 100 on its own if the site refuses the larger size.
+const PAGE_SIZE = Math.max(1, Number(import.meta.env.VITE_PAGE_SIZE) || 100);
+
+// Loads every page of a list. The first page tells us how many pages there are;
+// the rest are fetched at the same time, a few at once.
+async function fetchAll(path, query, listKey) {
+  let size = PAGE_SIZE;
+  let first;
+  try {
+    first = await request(path, { query: { ...query, per_page: size, page: 1 } });
+  } catch (err) {
+    if (size <= 100 || err.code === 401 || err.code === 0) throw err;
+    size = 100;
+    first = await request(path, { query: { ...query, per_page: size, page: 1 } });
+  }
+  const items = [...(first[listKey] || [])];
+  const pages = Math.min(Number(first.total_pages || 1), 200);
+  const rest = [];
+  for (let page = 2; page <= pages; page += 1) rest.push(page);
+  const results = new Array(rest.length);
+  let next = 0;
+  async function worker() {
+    while (next < rest.length) {
+      const i = next;
+      next += 1;
+      const data = await request(path, { query: { ...query, per_page: size, page: rest[i] } });
+      results[i] = data[listKey] || [];
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(6, rest.length) }, worker));
+  results.forEach((list) => items.push(...list));
+  return items;
 }
 
-export async function listAttendees(eventId) {
-  const attendees = [];
-  let page = 1;
-  let pages = 1;
-  do {
-    const data = await request(`/events/${eventId}/attendees`, { query: { per_page: 100, page } });
-    attendees.push(...(data.event_attendees || []));
-    pages = Number(data.total_pages || 1);
-    page += 1;
-  } while (page <= pages && page <= 100);
-  return attendees;
+export function listEvents({ search, withRegistrations } = {}) {
+  return fetchAll(
+    '/events',
+    { search, registrations: withRegistrations ? true : undefined, status: search || withRegistrations ? undefined : 'publish' },
+    'events'
+  );
+}
+
+export function listAttendees(eventId) {
+  return fetchAll(`/events/${eventId}/attendees`, {}, 'event_attendees');
 }
 
 export function getAttendee(eventId, attendeeId) {
@@ -153,3 +176,19 @@ export const ticketCode = (eventId, a) => `${eventId}-${meta(a, '_order_id')}-${
 // What gets encoded on the badge: the random badge code when the site has issued one,
 // otherwise the stock ticket code.
 export const badgeCode = (eventId, a) => uniqueId(a) || ticketCode(eventId, a);
+
+// A copy of an attendee with its check-in state changed, for updating the
+// screen at once without waiting to re-read the record.
+export function withCheckin(attendee, checkedIn) {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  return {
+    ...attendee,
+    meta_data: {
+      ...attendee.meta_data,
+      _check_in: checkedIn ? '1' : '0',
+      _checkin_time: checkedIn ? stamp : attendee.meta_data?._checkin_time,
+    },
+  };
+}

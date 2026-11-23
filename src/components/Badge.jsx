@@ -11,12 +11,15 @@ import { renderBadgePng } from '../badgeImage.js';
 function BadgeFace({ attendee, event, qr, code }) {
   return (
     <div className="badge">
-      <div className="badge-event">{event?.name}</div>
-      <div className="badge-first">{meta(attendee, '_attendee_name') || attendee?.name}</div>
-      <div className="badge-last">{meta(attendee, '_attendee_last_name')}</div>
-      <div className="badge-ticket">{meta(attendee, '_ticket_name')}</div>
-      {qr && <img className="badge-qr" src={qr} alt="" />}
-      <div className="badge-code">{code}</div>
+      <div className="badge-band">{event?.name}</div>
+      <div className="badge-body">
+        <div className="badge-first">{meta(attendee, '_attendee_name') || attendee?.name}</div>
+        <div className="badge-last">{meta(attendee, '_attendee_last_name')}</div>
+        <div className="badge-ticket">{meta(attendee, '_ticket_name')}</div>
+        <div className="badge-rule" />
+        {qr && <img className="badge-qr" src={qr} alt="" />}
+        <div className="badge-code">{code}</div>
+      </div>
     </div>
   );
 }
