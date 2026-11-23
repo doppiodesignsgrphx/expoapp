@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { badgeCode, fullName, meta } from '../api.js';
@@ -24,17 +24,21 @@ function BadgeFace({ attendee, event, qr, code }) {
   );
 }
 
-export default function Badge({ attendee, event }) {
+// autoPrint is a token that changes each time a scan asks for a badge. Each token prints once.
+export default function Badge({ attendee, event, autoPrint = null }) {
   const code = badgeCode(event.id, attendee);
   const desktop = useDesktop();
-  const [qr, setQr] = useState('');
+  const [made, setMade] = useState({ code: '', url: '' });
   const [busy, setBusy] = useState(false);
+  const printed = useRef(null);
+  // Only use the QR image once it matches this attendee's code.
+  const qr = made.code === code ? made.url : '';
   const [result, setResult] = useState(null);
 
   useEffect(() => {
     let live = true;
     setResult(null);
-    QRCode.toDataURL(code, { errorCorrectionLevel: 'M', margin: 0, width: 600 }).then((url) => live && setQr(url));
+    QRCode.toDataURL(code, { errorCorrectionLevel: 'M', margin: 0, width: 600 }).then((url) => live && setMade({ code, url }));
     return () => {
       live = false;
     };
@@ -65,6 +69,13 @@ export default function Badge({ attendee, event }) {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!autoPrint || !qr || printed.current === autoPrint) return;
+    printed.current = autoPrint;
+    print();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPrint, qr]);
 
   return (
     <div className="badge-wrap">

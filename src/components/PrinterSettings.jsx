@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { desktopApi } from '../desktop.js';
+import { desktopApi, useDesktop } from '../desktop.js';
+import { getAutoPrint, setAutoPrint } from '../prefs.js';
 
-// Shown only inside the desktop app. Settings are saved on this computer.
+// Settings are saved on this computer. The printer address and roll only apply in the desktop app.
 export default function PrinterSettings({ onClose }) {
   const [ip, setIp] = useState('');
   const [roll, setRoll] = useState('2205');
@@ -9,15 +10,36 @@ export default function PrinterSettings({ onClose }) {
   const [version, setVersion] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const [auto, setAuto] = useState(getAutoPrint);
+  const desktop = useDesktop();
 
   useEffect(() => {
+    if (!desktop) return;
     desktopApi().get_settings().then((s) => {
       setIp(s.printer_ip || '');
       setRoll(s.roll || '2205');
       setRolls(s.rolls || {});
       setVersion(s.version || '');
     });
-  }, []);
+  }, [desktop]);
+
+  const autoToggle = (
+    <label className="check">
+      <input type="checkbox" checked={auto} onChange={(e) => { setAuto(e.target.checked); setAutoPrint(e.target.checked); }} />
+      <span>Print the badge automatically when a scan checks someone in</span>
+    </label>
+  );
+
+  if (!desktop) {
+    return (
+      <section className="panel settings">
+        <h2>Badge printer</h2>
+        {autoToggle}
+        <p className="hint">In a browser each badge opens the print dialog. The desktop app sends badges straight to the Brother printer.</p>
+        <div className="row"><button className="btn secondary" onClick={onClose}>Close</button></div>
+      </section>
+    );
+  }
 
   async function run(action) {
     setBusy(true);
@@ -34,7 +56,8 @@ export default function PrinterSettings({ onClose }) {
 
   return (
     <section className="panel settings">
-      <h1>Badge printer</h1>
+      <h2>Badge printer</h2>
+      {autoToggle}
       <label>
         Printer address
         <input value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.4.36" inputMode="decimal" autoCapitalize="none" />
