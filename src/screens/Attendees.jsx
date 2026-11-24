@@ -219,8 +219,8 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack, que
               <button className="btn secondary" disabled={!badge.ready || badge.busy} onClick={() => badgeRef.current?.print()}>{badge.busy ? 'Printing' : 'Print badge'}</button>
             </div>
             {/* Goes to this person's log in the Attendees menu once that exists. */}
-            <button className="link start" onClick={() => setLogNote((v) => !v)}>Attendee log</button>
             {logNote && <p className="hint" role="status">The attendee log will open in the Attendees menu once that is built.</p>}
+            <button className="link start bottom" onClick={() => setLogNote((v) => !v)}>Attendee log</button>
           </div>
           <Badge ref={badgeRef} onState={setBadge} attendee={selected} event={event} autoPrint={autoPrint && autoPrint.id === selected.id ? autoPrint.token : null} />
         </section>
