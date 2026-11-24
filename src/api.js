@@ -188,6 +188,13 @@ export const meta = (attendee, key) => attendee?.meta_data?.[key] ?? '';
 export const fullName = (a) => [meta(a, '_attendee_name') || a?.name, meta(a, '_attendee_last_name')].filter(Boolean).join(' ');
 export const isCheckedIn = (a) => String(meta(a, '_check_in')) === '1';
 export const uniqueId = (a) => String(meta(a, '_attendee_unique_id') || '').toUpperCase();
+// True when the registration carries a ticket. A registration made without buying
+// one has no ticket id, ticket name or order.
+const filled = (v) => {
+  const t = Array.isArray(v) ? v.join('') : String(v ?? '').trim();
+  return t !== '' && t !== 'None' && t !== '[]' && t !== '0';
+};
+export const hasTicket = (a) => filled(meta(a, '_ticket_id')) || filled(meta(a, '_ticket_name'));
 export const ticketCode = (eventId, a) => `${eventId}-${meta(a, '_order_id')}-${a.id}`;
 
 // What gets encoded on the badge: the random badge code when the site has issued one,

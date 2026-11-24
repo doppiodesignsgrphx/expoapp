@@ -122,7 +122,7 @@ label { display: grid; gap: 6px; font-weight: 500; font-size: 14px; }
 .list-item .tag { font-weight: 700; color: var(--ink-2); }
 .list-item .tag.in { color: var(--ok); }
 
-.detail { background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--brand); padding: 24px; display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+.detail { background: #fff; border: 1px solid var(--line); padding: 24px; display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
 .detail-info { flex: 1 1 280px; display: grid; gap: 14px; }
 .detail-info h3 { font-size: 24px; }
 dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; }
@@ -148,7 +148,18 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .login-form .btn { height: 56px; }
 .link { background: none; border: 0; padding: 0; color: var(--navy); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; justify-self: center; }
 
-/* Attendee detail: session containers */
+/* Status tags */
+.status { display: inline-block; padding: 2px 10px; font-size: 14px; font-weight: 700; background: var(--bg); color: var(--ink-2); border: 1px solid var(--line); text-transform: capitalize; border-radius: var(--radius); }
+.status.good { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+.status.bad { background: var(--err-bg); color: var(--err); border-color: var(--err); text-transform: none; }
+.link.start { justify-self: start; }
+.preview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start; }
+.preview-grid .badge-card { background: #fff; border: 1px solid var(--line); padding: 16px; display: grid; gap: 10px; justify-items: center; }
+.preview-grid .badge-card img { width: 180px; height: 180px; image-rendering: pixelated; }
+.session-box ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.session-box li { background: #fff; border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+
+/* Session containers */
 .session-boxes { flex: 1 1 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
 .session-box { background: var(--bg); border: 1px solid var(--line); padding: 16px; display: grid; gap: 8px; align-content: start; border-radius: var(--radius); }
 .session-box h4 { margin: 0; font-size: 16px; display: flex; justify-content: space-between; gap: 12px; }
