@@ -209,6 +209,17 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack, que
             </div>
           </div>
           <Badge attendee={selected} event={event} autoPrint={autoPrint && autoPrint.id === selected.id ? autoPrint.token : null} />
+          {/* Filled in once session scanning is built. Each session is its own event on the site. */}
+          <div className="session-boxes">
+            <section className="session-box">
+              <h4>Registered sessions <span>0</span></h4>
+              <p className="hint">No registered sessions yet.</p>
+            </section>
+            <section className="session-box">
+              <h4>Sessions attended <span>0</span></h4>
+              <p className="hint">No sessions attended yet. A session counts once the badge is scanned at the door.</p>
+            </section>
+          </div>
         </section>
       )}
 
