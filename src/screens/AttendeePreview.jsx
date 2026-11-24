@@ -44,7 +44,7 @@ export default function AttendeePreview({ onSignOut }) {
           <p className="nav-head">Coming soon</p>
           {MENU.map(({ label, Icon }) => <button key={label} className="nav-item placeholder" disabled><Icon /><span>{label}</span></button>)}
         </nav>
-        <button className="nav-item signout" onClick={onSignOut}><LogOutIcon /><span>Sign out</span></button>
+        <button className="nav-item bottom" onClick={onSignOut}><LogOutIcon /><span>Sign out</span></button>
       </aside>
       <div className="scrim" onClick={() => setNavOpen(false)} />
 
@@ -56,13 +56,13 @@ export default function AttendeePreview({ onSignOut }) {
             <span className="sr-only">Search</span>
             <input type="search" placeholder="Search sessions" disabled />
           </label>
+          <span className="topbar-space" />
           <button className="icon-btn placeholder" disabled aria-label="Alerts (coming soon)"><BellIcon /></button>
           <button className="icon-btn" disabled aria-label="Settings (coming soon)"><SettingsIcon /></button>
         </header>
         <div className="content">
           <div className="screen">
-            <p className="notice ok" role="status">Preview of the attendee side. Everything shown is sample data.</p>
-            <div className="section-head"><h2>Welcome, {SAMPLE.first}</h2></div>
+            <h1 className="page-title">Welcome, {SAMPLE.first}</h1>
             <div className="preview-grid">
               <section className="badge-card">
                 <h3>My badge</h3>
@@ -87,8 +87,8 @@ export default function AttendeePreview({ onSignOut }) {
         <h2>{SAMPLE.first} {SAMPLE.last}</h2>
         <p className="hint">{SAMPLE.email}</p>
         <ul className="stats">
-          <li><CalendarIcon /><strong>{SAMPLE.registered.length}</strong><span>Registered sessions</span></li>
-          <li><CheckIcon /><strong>{SAMPLE.attended.length}</strong><span>Sessions attended</span></li>
+          <li><i className="chip"><CalendarIcon /></i><span>Registered sessions</span><strong>{SAMPLE.registered.length}</strong></li>
+          <li><i className="chip green"><CheckIcon /></i><span>Sessions attended</span><strong>{SAMPLE.attended.length}</strong></li>
         </ul>
       </aside>
     </div>

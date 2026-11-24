@@ -4,12 +4,13 @@ import { useDesktop } from './desktop.js';
 import Login from './screens/Login.jsx';
 import Events from './screens/Events.jsx';
 import Attendees from './screens/Attendees.jsx';
+import Search from './screens/Search.jsx';
 import AttendeePreview from './screens/AttendeePreview.jsx';
 import PrinterSettings from './components/PrinterSettings.jsx';
 import logo from './assets/oems-logo.svg';
 import {
   BackIcon, BellIcon, CalendarIcon, CardIcon, ChartIcon, CheckIcon, CloseIcon, HomeIcon, LogOutIcon,
-  MenuIcon, PrinterIcon, RefreshIcon, SearchIcon, SettingsIcon, TicketIcon, UsersIcon,
+  MenuIcon, PlusIcon, PrinterIcon, RefreshIcon, SearchIcon, SettingsIcon, TicketIcon, UsersIcon,
 } from './icons.jsx';
 
 // Menu items for features that are not built yet. They hold their place in the
@@ -36,6 +37,7 @@ const initials = (name) => name.split(/[\s._@-]+/).filter(Boolean).slice(0, 2).m
 export default function App() {
   const [user, setUser] = useState(session.token ? session.user : null);
   const [event, setEvent] = useState(null);
+  const [openAttendee, setOpenAttendee] = useState(null);
   const [showPrinter, setShowPrinter] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -53,6 +55,11 @@ export default function App() {
 
   // The search box means something different on each screen, so clear it on the way in and out.
   useEffect(() => setQuery(''), [event?.id]);
+
+  function pick(ev, attendeeId = null) {
+    setOpenAttendee(attendeeId);
+    setEvent(ev);
+  }
 
   function back() {
     if (showPrinter) return setShowPrinter(false);
@@ -99,7 +106,8 @@ export default function App() {
             <button key={label} className="nav-item placeholder" disabled><Icon /><span>{label}</span></button>
           ))}
         </nav>
-        <button className="nav-item signout" onClick={signOut}><LogOutIcon /><span>Sign out</span></button>
+        <button className="nav-item placeholder bottom" disabled><PlusIcon /><span>Register a new attendee</span></button>
+        <button className="nav-item" onClick={signOut}><LogOutIcon /><span>Sign out</span></button>
       </aside>
       <div className="scrim" onClick={() => setNavOpen(false)} />
 
@@ -115,18 +123,21 @@ export default function App() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={event ? 'Find by name, email or badge code' : 'Search events and sessions'}
+              placeholder={event ? 'Find in this event by name, email or badge code' : 'Search attendees and sessions'}
             />
           </label>
+          <span className="topbar-space" />
           <button className="icon-btn placeholder" disabled aria-label="Alerts (coming soon)" title="Alerts (coming soon)"><BellIcon /></button>
           <button className="icon-btn" onClick={() => setShowPrinter((s) => !s)} aria-label="Settings" title="Settings"><SettingsIcon /></button>
         </header>
 
         <div className="content">
           {showPrinter && <PrinterSettings onClose={() => setShowPrinter(false)} />}
-          {!event
-            ? <Events onPick={setEvent} refreshKey={refreshKey} onBusy={setBusy} query={query} onStats={setStats} />
-            : <Attendees event={event} refreshKey={refreshKey} onBusy={setBusy} registerBack={registerBack} query={query} onQuery={setQuery} onStats={setStats} />}
+          {event
+            ? <Attendees key={event.id} event={event} openId={openAttendee} refreshKey={refreshKey} onBusy={setBusy} registerBack={registerBack} query={query} onQuery={setQuery} onStats={setStats} />
+            : query.trim()
+              ? <Search query={query} refreshKey={refreshKey} onBusy={setBusy} onPickEvent={pick} onPickAttendee={pick} />
+              : <Events onPick={pick} refreshKey={refreshKey} onBusy={setBusy} onStats={setStats} />}
         </div>
       </div>
 
@@ -135,9 +146,9 @@ export default function App() {
         <h2>{name}</h2>
         <p className="hint">{user.user_email || user.email || 'OEMS staff'}</p>
         <ul className="stats">
-          <li><UsersIcon /><strong>{stats.registered}</strong><span>Registered</span></li>
-          <li><CheckIcon /><strong>{stats.checkedIn}</strong><span>Checked in</span></li>
-          <li><TicketIcon /><strong>{remaining}</strong><span>Remaining</span></li>
+          <li><i className="chip"><UsersIcon /></i><span>Registered</span><strong>{stats.registered}</strong></li>
+          <li><i className="chip green"><CheckIcon /></i><span>Checked in</span><strong>{stats.checkedIn}</strong></li>
+          <li><i className="chip"><TicketIcon /></i><span>Remaining</span><strong>{remaining}</strong></li>
         </ul>
         <div className="promo">
           <PrinterIcon />

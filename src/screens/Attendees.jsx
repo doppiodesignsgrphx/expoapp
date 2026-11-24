@@ -18,14 +18,14 @@ function StatusTag({ attendee }) {
 
 const TICKET_CODE = /^(\d+)-(\d+)-(\d+)$/;
 
-export default function Attendees({ event, refreshKey, onBusy, registerBack, query = '', onQuery, onStats }) {
+export default function Attendees({ event, openId = null, refreshKey, onBusy, registerBack, query = '', onQuery, onStats }) {
   const key = `attendees:${event.id}`;
   const [attendees, setAttendees] = useState(() => readCache(key) || []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedId, setSelectedId] = useState(openId);
   const [message, setMessage] = useState(null);
   const [autoPrint, setAutoPrint] = useState(null);
   const [badge, setBadge] = useState({ ready: false, busy: false });
@@ -190,7 +190,7 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack, que
   return (
     <div className="screen">
       <div className="section-head">
-        <h2>{event.name}</h2>
+        <h1 className="page-title">{event.name}</h1>
         <button className="btn" onClick={() => { primeFeedback(); setScanning((s) => !s); }}>
           <ScanIcon />{scanning ? 'Hide scanner' : 'Scan a badge or ticket'}
         </button>
@@ -212,22 +212,24 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack, que
               <dt>Status</dt><dd><StatusTag attendee={selected} /></dd>
               <dt>Check-in</dt><dd>{isCheckedIn(selected) ? `Checked in ${meta(selected, '_checkin_time')}` : 'Not checked in'}</dd>
             </dl>
-            <div className="row">
+            <div className="row bottom">
               {isCheckedIn(selected)
                 ? <button className="btn secondary" onClick={() => toggle(selected, false)}>Undo check-in</button>
                 : <button className="btn" onClick={() => toggle(selected, true)}>Check in</button>}
               <button className="btn secondary" disabled={!badge.ready || badge.busy} onClick={() => badgeRef.current?.print()}>{badge.busy ? 'Printing' : 'Print badge'}</button>
             </div>
-            {/* Goes to this person's log in the Attendees menu once that exists. */}
-            {logNote && <p className="hint" role="status">The attendee log will open in the Attendees menu once that is built.</p>}
-            <button className="link start bottom" onClick={() => setLogNote((v) => !v)}>Attendee log</button>
           </div>
-          <Badge ref={badgeRef} onState={setBadge} attendee={selected} event={event} autoPrint={autoPrint && autoPrint.id === selected.id ? autoPrint.token : null} />
+          <div className="detail-badge">
+            <Badge ref={badgeRef} onState={setBadge} attendee={selected} event={event} autoPrint={autoPrint && autoPrint.id === selected.id ? autoPrint.token : null} />
+            {/* Goes to this person's log in the Attendees menu once that exists. */}
+            <button className="link log" onClick={() => setLogNote((v) => !v)}>Attendee log</button>
+            {logNote && <p className="hint" role="status">Opens in the Attendees menu once that is built.</p>}
+          </div>
         </section>
       )}
 
       <div className="section-head">
-        <h3>Attendees</h3>
+        <h2 className="section-title">Attendees</h2>
         <span className="hint">{query.trim() ? `${shown.length} of ${attendees.length}` : `${attendees.length} total`}</span>
       </div>
       {shown.length === 0 ? <p className="empty">{busy ? 'Loading attendees' : 'No attendees found.'}</p> : (

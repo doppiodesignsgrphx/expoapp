@@ -6,7 +6,7 @@ const imageOf = (ev) => (Array.isArray(ev.images) ? ev.images[0] : ev.images) ||
 
 // The home screen: events shown as cards. Typing in the top bar search looks
 // up any event or session by name.
-export default function Events({ onPick, refreshKey, onBusy, query, onStats }) {
+export default function Events({ onPick, refreshKey, onBusy, query = '', onStats }) {
   const [term, setTerm] = useState('');
   const key = `events:${term || '*'}`;
   const [events, setEvents] = useState(() => readCache(key) || []);
@@ -51,7 +51,7 @@ export default function Events({ onPick, refreshKey, onBusy, query, onStats }) {
   return (
     <div className="screen">
       <div className="section-head">
-        <h2>{term ? `Results for "${term}"` : 'Events'}</h2>
+        <h1 className="page-title">Events</h1>
         <span className="hint">{busy && events.length > 0 ? 'Updating' : `${events.length} shown`}</span>
       </div>
       {!term && <p className="hint">Events with registrations. Use the search above to find any other event or session.</p>}

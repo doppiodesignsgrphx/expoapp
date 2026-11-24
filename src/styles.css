@@ -1,6 +1,7 @@
 /* Layout and type scale follow the dashboard template. The template purple is
    replaced by the OEMS website blue. Text and icons on that blue are white (--on-brand).
-   Corners are square. To get the template's rounded shapes, change --radius and --pill. */
+   Corners are gently rounded: --radius for cards, --control for buttons and fields,
+   --pill for the search bar and round shapes. Set all three to 0 for square corners. */
 :root {
   --brand: #4d6e9f;
   --brand-dark: #3e5a85;
@@ -16,8 +17,10 @@
   --ok-bg: #e4f4ea;
   --err: #9b1c1c;
   --err-bg: #fbe9e9;
-  --radius: 0;
-  --pill: 0;
+  --radius: 10px;
+  --control: 10px;
+  --pill: 999px;
+  --shadow: 0 2px 10px rgba(19, 19, 54, 0.07);
   --sidebar: 270px;
   --profile: 300px;
 }
@@ -46,7 +49,6 @@ button:disabled { cursor: default; }
 .nav-item:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
 .nav-item.active { background: rgba(255, 255, 255, 0.2); border-left-color: var(--on-brand); font-weight: 700; }
 .nav-item:disabled { opacity: 0.72; }
-.nav-item.signout { margin-top: auto; }
 .scrim { display: none; }
 .sidebar :focus-visible, .login-brand :focus-visible { outline-color: var(--on-brand); }
 .sidebar .icon-btn { color: var(--on-brand); }
@@ -193,6 +195,88 @@ dd { margin: 0; overflow-wrap: anywhere; }
   h2 { font-size: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { .sidebar { transition: none; } }
+
+/* Template look: type weights, rounded cards with a soft shadow, row cards. */
+h1, h2, h3 { font-weight: 500; }
+.page-title { font-size: 40px; font-weight: 500; line-height: 1.15; }
+.section-title { font-size: 24px; font-weight: 400; margin-top: 12px; }
+.screen { gap: 20px; }
+
+.sidebar-brand { font-weight: 500; }
+.nav-head { font-size: 16px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--on-brand); padding: 28px 24px 10px; }
+.nav-item { font-weight: 400; color: rgba(255, 255, 255, 0.82); border-left: 0; padding: 12px 24px; }
+.nav-item:hover:not(:disabled) { color: #fff; }
+.nav-item.active { font-weight: 500; color: #fff; background: rgba(255, 255, 255, 0.16); }
+.nav-item:disabled { opacity: 0.7; }
+.nav-item.bottom { margin-top: auto; }
+.nav-item.bottom + .nav-item { margin-top: 0; }
+
+.topbar { border-bottom-color: #ececf3; }
+.search { flex: 0 1 480px; border-color: #e6e6ef; }
+.topbar-space { flex: 1; }
+.icon-btn { border-radius: var(--control); }
+
+.profile { border-left-color: #ececf3; }
+.avatar { width: 128px; height: 128px; font-size: 40px; font-weight: 500; }
+.profile h2 { font-size: 16px; font-weight: 500; }
+.stats li { grid-template-columns: 48px 1fr auto; border-bottom: 0; padding: 8px 4px; gap: 16px; }
+.stats span { text-align: left; font-size: 16px; color: var(--ink); }
+.stats strong { font-size: 16px; font-weight: 400; }
+.chip { width: 48px; height: 48px; display: grid; place-items: center; border-radius: var(--pill); background: #dbe3ee; color: var(--brand); }
+.chip.green { background: #dcf3e3; color: #1c8a45; }
+.chip svg { color: inherit; }
+.promo { background: var(--bg); border: 1px solid #e6e6ef; }
+.promo h3 { font-weight: 500; }
+
+.btn { font-weight: 500; border-radius: var(--control); box-shadow: none; }
+.field, .panel input:not([type=checkbox]), .panel select { border-radius: var(--control); }
+.panel, .detail, .preview-grid .badge-card, .session-box { border: 0; box-shadow: var(--shadow); border-radius: var(--radius); background: #fff; }
+.session-box li { border-radius: var(--control); background: var(--bg); border: 0; }
+.notice { border-radius: var(--control); border-left-width: 0; }
+.status { border-radius: var(--control); font-weight: 500; }
+
+.card-art { border-radius: var(--radius); box-shadow: var(--shadow); }
+.card-caption strong { font-weight: 500; }
+
+/* Rows as separate cards, as in the template's result lists. */
+.rows, .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; background: none; border: 0; }
+.list li + li { border-top: 0; }
+.row-card, .list-item { width: 100%; display: grid; align-items: center; gap: 16px; padding: 14px 24px; background: #fff; border: 0; border-radius: var(--radius); box-shadow: var(--shadow); text-align: left; color: var(--ink); font-weight: 400; }
+.row-card { grid-template-columns: 28px 48px minmax(0, 1.2fr) minmax(0, 1.3fr) auto; min-height: 80px; }
+.row-card:hover, .list-item:hover { background: #fff; box-shadow: 0 4px 16px rgba(19, 19, 54, 0.14); }
+.list-item { border-left: 0; min-height: 64px; }
+.list-item.current { background: #fff; box-shadow: 0 0 0 2px var(--brand), var(--shadow); }
+.list-item strong { font-weight: 400; }
+.list-item .tag { font-weight: 500; }
+.row-num, .row-sub, .row-end { color: var(--muted); }
+.row-num { text-align: center; }
+.row-sub, .row-main { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thumb { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 8px; background: var(--brand) center / cover no-repeat; color: #fff; font-weight: 500; }
+
+/* Attendee detail: details on the left with the buttons at the bottom, badge on the right with the log link under it. */
+.detail { padding: 24px; gap: 32px; align-items: stretch; }
+.detail-info h3 { font-weight: 500; }
+/* The log link hangs below the badge, so lift the buttons to sit level with the badge's bottom edge. */
+.row.bottom { margin-top: auto; margin-bottom: 24px; }
+.detail-badge { display: grid; gap: 6px; justify-items: end; align-content: start; }
+.link.log { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.badge { border-radius: 0; }
+
+.login-brand h1 { font-weight: 700; }
+.login-form h2 { font-weight: 500; }
+
+@media (max-width: 860px) {
+  .page-title { font-size: 28px; }
+  .section-title { font-size: 20px; }
+  .search { flex: 1; }
+  .topbar-space { display: none; }
+  .row-card { grid-template-columns: 48px minmax(0, 1fr); padding: 12px 16px; }
+  .row-card .row-num, .row-card .row-end { display: none; }
+  .row-card .row-sub { grid-column: 2; }
+  .list-item { padding: 12px 16px; }
+  .detail-badge { justify-items: start; }
+  .row.bottom { margin-bottom: 0; }
+}
 
 /* Badge. 62mm wide to match Brother DK continuous tape. Keep in step with src/badgeImage.js. */
 .badge-wrap { display: grid; gap: 10px; justify-items: start; }
