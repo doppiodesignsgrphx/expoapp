@@ -4,6 +4,7 @@ import { useDesktop } from './desktop.js';
 import Login from './screens/Login.jsx';
 import Events from './screens/Events.jsx';
 import Attendees from './screens/Attendees.jsx';
+import AttendeePreview from './screens/AttendeePreview.jsx';
 import PrinterSettings from './components/PrinterSettings.jsx';
 import logo from './assets/oems-logo.svg';
 import {
@@ -15,7 +16,7 @@ import {
 // layout and do nothing.
 const PLACEHOLDERS = [
   { label: 'Sessions', Icon: CalendarIcon },
-  { label: 'Attendee lookup', Icon: UsersIcon },
+  { label: 'Attendees', Icon: UsersIcon },
   { label: 'Orders', Icon: CardIcon },
   { label: 'Tickets', Icon: TicketIcon },
   { label: 'Reports', Icon: ChartIcon },
@@ -74,6 +75,7 @@ export default function App() {
   }
 
   if (!user) return <Login onDone={setUser} />;
+  if (user.preview) return <AttendeePreview onSignOut={() => setUser(null)} />;
 
   const name = displayName(user);
   const remaining = Math.max(0, stats.registered - stats.checkedIn);
@@ -132,7 +134,6 @@ export default function App() {
         <div className="avatar" aria-hidden="true">{initials(name)}</div>
         <h2>{name}</h2>
         <p className="hint">{user.user_email || user.email || 'OEMS staff'}</p>
-        <p className="profile-label">{stats.label}</p>
         <ul className="stats">
           <li><UsersIcon /><strong>{stats.registered}</strong><span>Registered</span></li>
           <li><CheckIcon /><strong>{stats.checkedIn}</strong><span>Checked in</span></li>

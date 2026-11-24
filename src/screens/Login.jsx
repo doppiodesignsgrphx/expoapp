@@ -3,6 +3,10 @@ import { login, requestCode, verifyCode } from '../api.js';
 import logo from '../assets/oems-logo.svg';
 import { KeyIcon, LockIcon, MailIcon, UserIcon } from '../icons.jsx';
 
+// Typing this in the attendee box opens the attendee side with sample data only.
+// It is in the page source, so it must never unlock anything real.
+const PREVIEW_CODE = import.meta.env.VITE_PREVIEW_CODE || 'expo-preview-2027';
+
 const REGISTER_URL = 'https://oems.nc.gov/programs-and-services/expo';
 
 // Words on the left panel change with who is signing in.
@@ -34,6 +38,8 @@ export default function Login({ onDone }) {
     try {
       if (mode === 'staff') {
         onDone(await login(username.trim(), password));
+      } else if (mode === 'attendee' && contact.trim() === PREVIEW_CODE) {
+        onDone({ preview: true });
       } else if (mode === 'attendee') {
         await requestCode(contact.trim());
         go('code');

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { badgeCode, fullName, meta } from '../api.js';
@@ -25,7 +25,9 @@ function BadgeFace({ attendee, event, qr, code }) {
 }
 
 // autoPrint is a token that changes each time a scan asks for a badge. Each token prints once.
-export default function Badge({ attendee, event, autoPrint = null }) {
+// The Print button lives in the attendee detail, so print() is exposed through the ref
+// and onState reports when the badge is ready or busy.
+export default forwardRef(function Badge({ attendee, event, autoPrint = null, onState }, ref) {
   const code = badgeCode(event.id, attendee);
   const desktop = useDesktop();
   const [made, setMade] = useState({ code: '', url: '' });
@@ -45,6 +47,7 @@ export default function Badge({ attendee, event, autoPrint = null }) {
   }, [code]);
 
   async function print() {
+    if (!qr || busy) return;
     if (!desktop) {
       setResult({ ok: true, message: `Printing ${fullName(attendee)}. In the print dialog choose the Brother printer and the 62mm roll, with margins set to none.` });
       window.print();
@@ -70,6 +73,13 @@ export default function Badge({ attendee, event, autoPrint = null }) {
     }
   }
 
+  useImperativeHandle(ref, () => ({ print }));
+
+  useEffect(() => {
+    onState?.({ ready: Boolean(qr), busy });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qr, busy]);
+
   useEffect(() => {
     if (!autoPrint || !qr || printed.current === autoPrint) return;
     printed.current = autoPrint;
@@ -80,12 +90,9 @@ export default function Badge({ attendee, event, autoPrint = null }) {
   return (
     <div className="badge-wrap">
       <BadgeFace attendee={attendee} event={event} qr={qr} code={code} />
-      <button className="btn" disabled={!qr || busy} onClick={print}>
-        {busy ? 'Printing' : 'Print badge'}
-      </button>
       {result && !result.ok && <p className="notice error" role="status">{result.message}</p>}
       {result && result.ok && <p className="hint" role="status">{result.message}</p>}
       {createPortal(<BadgeFace attendee={attendee} event={event} qr={qr} code={code} />, document.getElementById('print-root'))}
     </div>
   );
-}
+});

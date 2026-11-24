@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { checkinByTicketCode, fullName, getAttendee, isCheckedIn, listAttendees, meta, setCheckin, uniqueId, withCheckin } from '../api.js';
+import { checkinByTicketCode, fullName, hasTicket, getAttendee, isCheckedIn, listAttendees, meta, setCheckin, uniqueId, withCheckin } from '../api.js';
 import { readCache, writeCache } from '../cache.js';
 import Scanner from '../components/Scanner.jsx';
 import Badge from '../components/Badge.jsx';
@@ -7,6 +7,14 @@ import { primeFeedback, signal } from '../feedback.js';
 import { useWedgeScanner } from '../wedge.js';
 import { getAutoPrint } from '../prefs.js';
 import { ScanIcon } from '../icons.jsx';
+
+// Confirmed with a ticket is green. Confirmed without a ticket still owes a purchase, so it is red.
+function StatusTag({ attendee }) {
+  const status = String(attendee.status || '').toLowerCase();
+  if (status === 'confirmed' && !hasTicket(attendee)) return <span className="status bad">Needs to purchase ticket</span>;
+  if (status === 'confirmed') return <span className="status good">Confirmed</span>;
+  return <span className="status">{attendee.status || 'Unknown'}</span>;
+}
 
 const TICKET_CODE = /^(\d+)-(\d+)-(\d+)$/;
 
@@ -20,6 +28,9 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack, que
   const [selectedId, setSelectedId] = useState(null);
   const [message, setMessage] = useState(null);
   const [autoPrint, setAutoPrint] = useState(null);
+  const [badge, setBadge] = useState({ ready: false, busy: false });
+  const [logNote, setLogNote] = useState(false);
+  const badgeRef = useRef(null);
   const latest = useRef(0);
   const list = useRef(attendees);
 
@@ -198,28 +209,20 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack, que
               <dt>Email</dt><dd>{meta(selected, '_attendee_email')}</dd>
               <dt>Ticket</dt><dd>{meta(selected, '_ticket_name')}</dd>
               <dt>Order</dt><dd>{meta(selected, '_order_id')}</dd>
-              <dt>Status</dt><dd>{selected.status}</dd>
+              <dt>Status</dt><dd><StatusTag attendee={selected} /></dd>
               <dt>Check-in</dt><dd>{isCheckedIn(selected) ? `Checked in ${meta(selected, '_checkin_time')}` : 'Not checked in'}</dd>
             </dl>
             <div className="row">
               {isCheckedIn(selected)
                 ? <button className="btn secondary" onClick={() => toggle(selected, false)}>Undo check-in</button>
                 : <button className="btn" onClick={() => toggle(selected, true)}>Check in</button>}
-              <button className="btn secondary" onClick={() => { setSelectedId(null); setMessage(null); }}>Close</button>
+              <button className="btn secondary" disabled={!badge.ready || badge.busy} onClick={() => badgeRef.current?.print()}>{badge.busy ? 'Printing' : 'Print badge'}</button>
             </div>
+            {/* Goes to this person's log in the Attendees menu once that exists. */}
+            <button className="link start" onClick={() => setLogNote((v) => !v)}>Attendee log</button>
+            {logNote && <p className="hint" role="status">The attendee log will open in the Attendees menu once that is built.</p>}
           </div>
-          <Badge attendee={selected} event={event} autoPrint={autoPrint && autoPrint.id === selected.id ? autoPrint.token : null} />
-          {/* Filled in once session scanning is built. Each session is its own event on the site. */}
-          <div className="session-boxes">
-            <section className="session-box">
-              <h4>Registered sessions <span>0</span></h4>
-              <p className="hint">No registered sessions yet.</p>
-            </section>
-            <section className="session-box">
-              <h4>Sessions attended <span>0</span></h4>
-              <p className="hint">No sessions attended yet. A session counts once the badge is scanned at the door.</p>
-            </section>
-          </div>
+          <Badge ref={badgeRef} onState={setBadge} attendee={selected} event={event} autoPrint={autoPrint && autoPrint.id === selected.id ? autoPrint.token : null} />
         </section>
       )}
 
@@ -231,7 +234,7 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack, que
         <ul className="list">
           {shown.map((a) => (
             <li key={a.id}>
-              <button className={`list-item${a.id === selectedId ? ' current' : ''}`} onClick={() => { setSelectedId(a.id); setMessage(null); document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              <button className={`list-item${a.id === selectedId ? ' current' : ''}`} onClick={() => { setSelectedId(a.id); setMessage(null); setLogNote(false); document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                 <strong>{fullName(a)}</strong>
                 <span>{meta(a, '_attendee_email')}</span>
                 <span className={isCheckedIn(a) ? 'tag in' : 'tag'}>{isCheckedIn(a) ? 'Checked in' : 'Not checked in'}</span>
