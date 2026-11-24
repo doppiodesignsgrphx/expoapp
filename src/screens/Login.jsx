@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { login } from '../api.js';
+import logo from '../assets/oems-logo.svg';
+import { LockIcon, UserIcon } from '../icons.jsx';
 
 export default function Login({ onDone }) {
   const [username, setUsername] = useState('');
@@ -21,18 +23,33 @@ export default function Login({ onDone }) {
   }
 
   return (
-    <form className="panel narrow" onSubmit={submit}>
-      <h1>Staff sign in</h1>
-      <label>
-        Username
-        <input value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" autoComplete="username" required />
-      </label>
-      <label>
-        Password
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
-      </label>
-      {error && <p className="notice error">{error}</p>}
-      <button className="btn" disabled={busy}>{busy ? 'Signing in' : 'Sign in'}</button>
-    </form>
+    <div className="login">
+      <section className="login-brand">
+        <div className="login-logo">
+          <img src={logo} alt="North Carolina Office of EMS" />
+          <span>NC EMS Expo</span>
+        </div>
+        <h1>Registration<br />and check-in</h1>
+        <p>Check attendees in, print badges and track attendance for the North Carolina EMS Expo.</p>
+      </section>
+      <section className="login-form">
+        <form onSubmit={submit}>
+          <h2>Staff sign in</h2>
+          <p className="hint">Use your Expo site account.</p>
+          <label className="field">
+            <span className="sr-only">Username</span>
+            <UserIcon />
+            <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" autoComplete="username" required />
+          </label>
+          <label className="field">
+            <span className="sr-only">Password</span>
+            <LockIcon />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+          </label>
+          {error && <p className="notice error">{error}</p>}
+          <button className="btn" disabled={busy}>{busy ? 'Signing in' : 'Sign in'}</button>
+        </form>
+      </section>
+    </div>
   );
 }

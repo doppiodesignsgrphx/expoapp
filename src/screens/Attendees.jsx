@@ -5,19 +5,21 @@ import Scanner from '../components/Scanner.jsx';
 import Badge from '../components/Badge.jsx';
 import { primeFeedback, signal } from '../feedback.js';
 import { useWedgeScanner } from '../wedge.js';
+import { getAutoPrint } from '../prefs.js';
+import { ScanIcon } from '../icons.jsx';
 
 const TICKET_CODE = /^(\d+)-(\d+)-(\d+)$/;
 
-export default function Attendees({ event, refreshKey, onBusy, registerBack }) {
+export default function Attendees({ event, refreshKey, onBusy, registerBack, query = '', onQuery, onStats }) {
   const key = `attendees:${event.id}`;
   const [attendees, setAttendees] = useState(() => readCache(key) || []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [message, setMessage] = useState(null);
+  const [autoPrint, setAutoPrint] = useState(null);
   const latest = useRef(0);
   const list = useRef(attendees);
 
@@ -80,6 +82,8 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack }) {
   const handleScan = useCallback(
     async (text) => {
       // Every scan result goes through here so it is seen, heard and felt.
+      // A scan that checks in someone new also prints their badge, if that setting is on.
+      const printFor = (id) => getAutoPrint() && setAutoPrint({ id, token: Date.now() });
       const report = (ok, msg) => {
         setMessage({ ok, text: msg });
         signal(ok);
@@ -114,6 +118,7 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack }) {
           const record = known || (await getAttendee(event.id, attendeeId));
           put(already && isCheckedIn(record) ? record : withCheckin(record, true));
           setSelectedId(record.id);
+          if (!already) printFor(record.id);
           report(!already, already ? `${fullName(record)} is already checked in.` : `${fullName(record)} is checked in.`);
           return;
         }
@@ -134,6 +139,7 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack }) {
         put(withCheckin(match, true));
         try {
           await setCheckin(event.id, match.id, true);
+          printFor(match.id);
         } catch (err) {
           put(match);
           throw err;
@@ -150,29 +156,35 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack }) {
   useWedgeScanner(
     useCallback(
       (text) => {
-        setFilter((current) => (current.endsWith(text) ? current.slice(0, -text.length) : current));
+        onQuery?.((current) => (current.endsWith(text) ? current.slice(0, -text.length) : current));
         handleScan(text.trim());
       },
-      [handleScan]
+      [handleScan, onQuery]
     )
   );
 
   const shown = useMemo(() => {
-    const term = filter.trim().toLowerCase();
+    const term = query.trim().toLowerCase();
     if (!term) return attendees;
     return attendees.filter((a) => `${fullName(a)} ${meta(a, '_attendee_email')} ${uniqueId(a)}`.toLowerCase().includes(term));
-  }, [attendees, filter]);
+  }, [attendees, query]);
 
   const checkedIn = attendees.filter(isCheckedIn).length;
 
-  return (
-    <div className="panel">
-      <h1>{event.name}</h1>
-      <p className="hint">{attendees.length} registered, {checkedIn} checked in{busy && attendees.length > 0 ? ' · updating' : ''}</p>
+  useEffect(() => {
+    onStats?.({ label: event.name, registered: attendees.length, checkedIn });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event.name, attendees.length, checkedIn]);
 
-      <div className="row">
-        <button className="btn" onClick={() => { primeFeedback(); setScanning((s) => !s); }}>{scanning ? 'Hide scanner' : 'Scan a badge or ticket'}</button>
+  return (
+    <div className="screen">
+      <div className="section-head">
+        <h2>{event.name}</h2>
+        <button className="btn" onClick={() => { primeFeedback(); setScanning((s) => !s); }}>
+          <ScanIcon />{scanning ? 'Hide scanner' : 'Scan a badge or ticket'}
+        </button>
       </div>
+      <p className="hint">{attendees.length} registered, {checkedIn} checked in{busy && attendees.length > 0 ? ' \u00b7 updating' : ''}</p>
 
       {scanning && <Scanner onScan={handleScan} onClose={() => setScanning(false)} scanned={scanned} />}
       {message && <p className={`notice ${message.ok ? 'ok' : 'error'}`} role="status">{message.text}</p>}
@@ -180,30 +192,35 @@ export default function Attendees({ event, refreshKey, onBusy, registerBack }) {
 
       {selected && (
         <section className="detail">
-          <h2>{fullName(selected)}</h2>
-          <dl>
-            <dt>Email</dt><dd>{meta(selected, '_attendee_email')}</dd>
-            <dt>Ticket</dt><dd>{meta(selected, '_ticket_name')}</dd>
-            <dt>Order</dt><dd>{meta(selected, '_order_id')}</dd>
-            <dt>Status</dt><dd>{selected.status}</dd>
-            <dt>Check-in</dt><dd>{isCheckedIn(selected) ? `Checked in ${meta(selected, '_checkin_time')}` : 'Not checked in'}</dd>
-          </dl>
-          <div className="row">
-            {isCheckedIn(selected)
-              ? <button className="btn secondary" onClick={() => toggle(selected, false)}>Undo check-in</button>
-              : <button className="btn" onClick={() => toggle(selected, true)}>Check in</button>}
-            <button className="btn secondary" onClick={() => { setSelectedId(null); setMessage(null); }}>Close</button>
+          <div className="detail-info">
+            <h3>{fullName(selected)}</h3>
+            <dl>
+              <dt>Email</dt><dd>{meta(selected, '_attendee_email')}</dd>
+              <dt>Ticket</dt><dd>{meta(selected, '_ticket_name')}</dd>
+              <dt>Order</dt><dd>{meta(selected, '_order_id')}</dd>
+              <dt>Status</dt><dd>{selected.status}</dd>
+              <dt>Check-in</dt><dd>{isCheckedIn(selected) ? `Checked in ${meta(selected, '_checkin_time')}` : 'Not checked in'}</dd>
+            </dl>
+            <div className="row">
+              {isCheckedIn(selected)
+                ? <button className="btn secondary" onClick={() => toggle(selected, false)}>Undo check-in</button>
+                : <button className="btn" onClick={() => toggle(selected, true)}>Check in</button>}
+              <button className="btn secondary" onClick={() => { setSelectedId(null); setMessage(null); }}>Close</button>
+            </div>
           </div>
-          <Badge attendee={selected} event={event} />
+          <Badge attendee={selected} event={event} autoPrint={autoPrint && autoPrint.id === selected.id ? autoPrint.token : null} />
         </section>
       )}
 
-      <input placeholder="Find by name, email or badge code" value={filter} onChange={(e) => setFilter(e.target.value)} />
-      {shown.length === 0 ? <p>{busy ? 'Loading attendees' : 'No attendees found.'}</p> : (
+      <div className="section-head">
+        <h3>Attendees</h3>
+        <span className="hint">{query.trim() ? `${shown.length} of ${attendees.length}` : `${attendees.length} total`}</span>
+      </div>
+      {shown.length === 0 ? <p className="empty">{busy ? 'Loading attendees' : 'No attendees found.'}</p> : (
         <ul className="list">
           {shown.map((a) => (
             <li key={a.id}>
-              <button className="list-item" onClick={() => { setSelectedId(a.id); setMessage(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              <button className={`list-item${a.id === selectedId ? ' current' : ''}`} onClick={() => { setSelectedId(a.id); setMessage(null); document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                 <strong>{fullName(a)}</strong>
                 <span>{meta(a, '_attendee_email')}</span>
                 <span className={isCheckedIn(a) ? 'tag in' : 'tag'}>{isCheckedIn(a) ? 'Checked in' : 'Not checked in'}</span>
