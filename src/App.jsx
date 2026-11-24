@@ -22,8 +22,15 @@ const PLACEHOLDERS = [
   { label: 'Alerts', Icon: BellIcon },
 ];
 
-const displayName = (user) => user?.display_name || user?.user_display_name || user?.name || user?.username || user?.user_login || 'Expo staff';
-const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || 'ES';
+// The site's sign-in reply does not always carry a name, so try the likely
+// fields and fall back to the username typed at sign-in.
+function displayName(user) {
+  if (!user) return 'OEMS staff';
+  const full = [user.first_name, user.last_name].filter(Boolean).join(' ');
+  return full || user.display_name || user.user_display_name || user.name || user.nicename || user.user_nicename
+    || user.username || user.user_login || user.login || user.user_email || user.email || 'OEMS staff';
+}
+const initials = (name) => name.split(/[\s._@-]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || 'OS';
 
 export default function App() {
   const [user, setUser] = useState(session.token ? session.user : null);
@@ -76,7 +83,7 @@ export default function App() {
       <aside className="sidebar">
         <div className="sidebar-brand">
           <img src={logo} alt="North Carolina Office of EMS" />
-          <span>NC EMS Expo</span>
+          <span>OEMS EXPO</span>
           <button className="icon-btn nav-close" onClick={() => setNavOpen(false)} aria-label="Close menu"><CloseIcon /></button>
         </div>
         <nav aria-label="Main">
@@ -124,7 +131,7 @@ export default function App() {
       <aside className="profile">
         <div className="avatar" aria-hidden="true">{initials(name)}</div>
         <h2>{name}</h2>
-        <p className="hint">Expo staff</p>
+        <p className="hint">{user.user_email || user.email || 'OEMS staff'}</p>
         <p className="profile-label">{stats.label}</p>
         <ul className="stats">
           <li><UsersIcon /><strong>{stats.registered}</strong><span>Registered</span></li>

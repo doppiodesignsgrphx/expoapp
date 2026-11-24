@@ -94,9 +94,26 @@ async function request(path, { method = 'GET', query, json, form, auth = true } 
 export async function login(username, password) {
   const data = await request('/applogin', { method: 'POST', json: { username, password }, auth: false });
   if (!data?.token) throw new ApiError('Sign-in did not return a token.', 0);
-  session.save(data.token, data.user);
-  return data.user;
+  // Keep the name typed at sign-in so the profile can show who is signed in
+  // even if the site sends no name fields back.
+  const user = { ...(data.user || {}), login: username };
+  session.save(data.token, user);
+  return user;
 }
+
+// Attendee sign-in by one-time code. The site does not have these routes yet.
+// Set VITE_OTP_BASE once they exist (expects POST /request and POST /verify).
+const OTP_BASE = (import.meta.env.VITE_OTP_BASE || '').replace(/\/$/, '');
+
+async function otpCall(path, body) {
+  if (!OTP_BASE) throw new ApiError('Attendee sign-in is not switched on yet.', 0);
+  const res = await fetch(OTP_BASE + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) throw new ApiError(data.message || 'That did not work. Try again.', res.status);
+  return data;
+}
+export const requestCode = (contact) => otpCall('/request', { contact });
+export const verifyCode = (contact, code) => otpCall('/verify', { contact, code });
 
 // How many records to ask for per request. The site caps this (100 by default).
 // If the cap is raised on the site, set VITE_PAGE_SIZE to match; the app falls

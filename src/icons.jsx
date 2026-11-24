@@ -22,3 +22,5 @@ export const MenuIcon = make(<path d="M3 6h18M3 12h18M3 18h18" />);
 export const CloseIcon = make(<path d="M6 6l12 12M18 6L6 18" />);
 export const ListIcon = make(<><path d="M8 6h13M8 12h13M8 18h13" /><path d="M3 6h.01M3 12h.01M3 18h.01" /></>);
 export const TicketIcon = make(<><path d="M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3a3 3 0 0 0 0 6v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a3 3 0 0 0 0-6z" /><path d="M14 5v14" strokeDasharray="2 3" /></>);
+export const MailIcon = make(<><rect x="3" y="5" width="18" height="14" /><path d="M3 7l9 6 9-6" /></>);
+export const KeyIcon = make(<><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M16 7l3 3" /></>);
