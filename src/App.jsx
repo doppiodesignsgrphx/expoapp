@@ -9,19 +9,21 @@ import AttendeePreview from './screens/AttendeePreview.jsx';
 import PrinterSettings from './components/PrinterSettings.jsx';
 import logo from './assets/oems-logo.svg';
 import {
-  BackIcon, BellIcon, CalendarIcon, CardIcon, ChartIcon, CheckIcon, CloseIcon, HomeIcon, LogOutIcon,
-  MenuIcon, PlusIcon, PrinterIcon, RefreshIcon, SearchIcon, SettingsIcon, TicketIcon, UsersIcon,
+  BackIcon, BellIcon, CalendarIcon, ChartIcon, CheckIcon, ClockIcon, CloseIcon, HomeIcon, LogOutIcon,
+  MenuIcon, MessageIcon, PlusIcon, PrinterIcon, RefreshIcon, SearchIcon, SettingsIcon, TicketIcon, TransferIcon, UsersIcon,
 } from './icons.jsx';
 
 // Menu items for features that are not built yet. They hold their place in the
 // layout and do nothing.
 const PLACEHOLDERS = [
-  { label: 'Sessions', Icon: CalendarIcon },
   { label: 'Attendees', Icon: UsersIcon },
-  { label: 'Orders', Icon: CardIcon },
+  { label: 'Sessions', Icon: CalendarIcon },
   { label: 'Tickets', Icon: TicketIcon },
-  { label: 'Reports', Icon: ChartIcon },
+  { label: 'Transfers', Icon: TransferIcon },
+  { label: 'Staff schedule', Icon: ClockIcon },
+  { label: 'Messages', Icon: MessageIcon },
   { label: 'Alerts', Icon: BellIcon },
+  { label: 'Reports', Icon: ChartIcon },
 ];
 
 // The site's sign-in reply does not always carry a name, so try the likely

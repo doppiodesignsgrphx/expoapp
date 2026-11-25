@@ -278,6 +278,16 @@ h1, h2, h3 { font-weight: 500; }
   .row.bottom { margin-bottom: 0; }
 }
 
+/* Attendee ticket */
+.ticket-card { max-width: 420px; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.ticket-top { background: var(--brand); color: var(--on-brand); padding: 16px 24px; display: grid; gap: 2px; }
+.ticket-top span { font-size: 14px; letter-spacing: 0.06em; }
+.ticket-top strong { font-size: 20px; font-weight: 500; }
+.ticket-body { padding: 24px; display: grid; gap: 10px; justify-items: center; text-align: center; }
+.ticket-body img { width: min(260px, 70vw); height: auto; image-rendering: pixelated; }
+.ticket-body h2 { font-size: 20px; }
+.ticket-code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; letter-spacing: 0.08em; color: var(--ink-2); }
+
 /* Badge. 62mm wide to match Brother DK continuous tape. Keep in step with src/badgeImage.js. */
 .badge-wrap { display: grid; gap: 10px; justify-items: start; }
 .badge { width: 62mm; height: 100mm; background: #fff; color: #000; border: 0.6mm solid #000; display: flex; flex-direction: column; text-align: center; overflow: hidden; }
