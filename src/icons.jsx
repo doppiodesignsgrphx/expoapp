@@ -25,3 +25,13 @@ export const TicketIcon = make(<><path d="M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v
 export const MailIcon = make(<><rect x="3" y="5" width="18" height="14" /><path d="M3 7l9 6 9-6" /></>);
 export const KeyIcon = make(<><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M16 7l3 3" /></>);
 export const PlusIcon = make(<><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></>);
+export const ClockIcon = make(<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>);
+export const MessageIcon = make(<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />);
+export const TransferIcon = make(<><path d="M17 3l4 4-4 4" /><path d="M21 7H7" /><path d="M7 21l-4-4 4-4" /><path d="M3 17h14" /></>);
+export const BookmarkIcon = make(<path d="M6 3h12v18l-6-4-6 4z" />);
+export const NoteIcon = make(<><path d="M5 3h11l3 3v15H5z" /><path d="M9 9h6M9 13h6M9 17h3" /></>);
+export const MapIcon = make(<><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z" /><path d="M9 4v14M15 6v14" /></>);
+export const BagIcon = make(<><path d="M5 8h14l-1 13H6z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>);
+export const HelpIcon = make(<><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7" /><path d="M12 17h.01" /></>);
+export const PhoneIcon = make(<path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z" />);
+export const FlagIcon = make(<><path d="M5 21V4" /><path d="M5 4h13l-2 4 2 4H5" /></>);
