@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { eventTypes, listEvents } from '../api.js';
+import { eventTypes, listSessions } from '../api.js';
 import { readCache, writeCache } from '../cache.js';
 
 const imageOf = (ev) => (Array.isArray(ev.images) ? ev.images[0] : ev.images) || '';
@@ -17,7 +17,7 @@ export default function Sessions({ query = '', refreshKey, onBusy, onPick, onSta
     setBusy(true);
     onBusy?.(true);
     setError('');
-    listEvents()
+    listSessions()
       .then((list) => {
         if (run !== latest.current) return;
         writeCache('sessions:all', list);

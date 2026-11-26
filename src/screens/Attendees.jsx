@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { checkinByTicketCode, fullName, getAttendee, isCheckedIn, listAttendees, meta, setCheckin, uniqueId, withCheckin } from '../api.js';
+import { checkinByTicketCode, eventTypes, fullName, getAttendee, isCheckedIn, listAttendees, meta, setCheckin, uniqueId, withCheckin } from '../api.js';
 import { readCache, writeCache } from '../cache.js';
 import Scanner from '../components/Scanner.jsx';
 import Badge from '../components/Badge.jsx';
@@ -87,7 +87,10 @@ export default function Attendees({ event, openId = null, refreshKey, onBusy, re
     async (text) => {
       // Every scan result goes through here so it is seen, heard and felt.
       // A scan that checks in someone new also prints their badge, if that setting is on.
-      const printFor = (id) => getAutoPrint() && setAutoPrint({ id, token: Date.now() });
+      // Badges are printed at registration only, never by a scan at a session door.
+      const tagged = (readCache('sessions:all') || []).find((x) => x.id === event.id) || event;
+      const isSession = eventTypes(tagged).length > 0;
+      const printFor = (id) => !isSession && getAutoPrint() && setAutoPrint({ id, token: Date.now() });
       const report = (ok, msg) => {
         setMessage({ ok, text: msg });
         signal(ok);
