@@ -392,3 +392,29 @@ h1, h2, h3 { font-weight: 500; }
 .content .screen, .content .panel, .content .panel.wide, .content .detail { max-width: none; width: 100%; }
 .choice { align-items: center; }
 .choice input { margin-top: 0; }
+
+/* Orders */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid #c9c9d6; background: #fff; color: var(--ink); border-radius: var(--pill); font-size: 14px; }
+.filter span { color: var(--muted); }
+.filter.on { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.filter.on span { color: var(--on-brand); }
+.row-card.order-row { grid-template-columns: 80px minmax(0, 1.2fr) minmax(0, 1.2fr) 100px 190px; min-height: 64px; }
+.order-row .row-num { text-align: left; color: var(--ink); font-weight: 500; }
+.order-row .row-total { text-align: right; font-weight: 500; }
+.order-row .row-end { text-align: right; }
+.order-lines, .order-people, .order-notes { list-style: none; margin: 0; padding: 0; display: grid; }
+.order-lines li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid #ececf3; }
+.order-people li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; gap: 16px; align-items: center; padding: 10px 0; border-top: 1px solid #ececf3; }
+.order-notes li { padding: 10px 0; border-top: 1px solid #ececf3; display: grid; gap: 2px; }
+.order-notes p { margin: 0; overflow-wrap: anywhere; }
+.note-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+.panel textarea { padding: 12px; border: 1px solid #8a8a9c; width: 100%; background: #fff; color: var(--ink); border-radius: var(--control); font: inherit; resize: vertical; }
+.btn.danger { background: var(--err); border-color: var(--err); color: #fff; }
+.btn.secondary.danger { background: #fff; color: var(--err); border-color: var(--err); }
+.confirm { display: grid; gap: 12px; padding: 16px; background: var(--err-bg); border-radius: var(--radius); }
+.confirm p { margin: 0; }
+@media (max-width: 860px) {
+  .row-card.order-row { grid-template-columns: 1fr auto; gap: 4px 12px; }
+  .order-people li, .note-form { grid-template-columns: 1fr; gap: 4px; }
+}

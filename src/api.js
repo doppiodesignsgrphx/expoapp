@@ -172,7 +172,7 @@ async function pos(path, options) {
   try {
     return await request(path, { ...options, base: POS_BASE });
   } catch (err) {
-    if (/no route/i.test(err.message || '')) throw new ApiError('Ticket sales and transfers are not switched on for this site yet.', 404);
+    if (/no route/i.test(err.message || '')) throw new ApiError('Ticket sales, orders and transfers are not switched on for this site yet, or the site snippet is out of date.', 404);
     throw err;
   }
 }
@@ -181,6 +181,31 @@ export const createPosOrder = (body) => pos('/pos/orders', { method: 'POST', jso
 export const markOrderPaid = (orderId, method) => pos(`/pos/orders/${orderId}/paid`, { method: 'POST', json: { method } });
 export const textOrderAgain = (orderId) => pos(`/pos/orders/${orderId}/text`, { method: 'POST', json: {} });
 export const transferTicket = (body) => pos('/transfers', { method: 'POST', json: body });
+
+// Orders for an event. The site sends them a page at a time; every page is read
+// once so the list can be searched and filtered without another trip.
+export async function listOrders(eventId) {
+  const all = [];
+  for (let page = 1; page <= 100; page += 1) {
+    const data = await pos('/orders', { query: { event_id: eventId, page, per_page: 100 } });
+    all.push(...(data?.orders || []));
+    if (page >= Number(data?.total_pages || 1)) break;
+  }
+  return all;
+}
+export const readOrder = (orderId) => pos(`/orders/${orderId}`);
+export const addOrderNote = (orderId, note) => pos(`/orders/${orderId}/note`, { method: 'POST', json: { note } });
+export const cancelOrder = (orderId, reason) => pos(`/orders/${orderId}/cancel`, { method: 'POST', json: { reason } });
+
+// What staff call the state of an order.
+export function orderState(order) {
+  const status = String(order?.status || '');
+  if (status === 'refunded') return { id: 'closed', label: 'Refunded', tone: '' };
+  if (status === 'cancelled' || status === 'failed') return { id: 'closed', label: status === 'failed' ? 'Payment failed' : 'Cancelled', tone: 'bad' };
+  if (order?.paid || status === 'completed') return { id: 'paid', label: 'Paid', tone: 'good' };
+  if (['cod', 'cheque'].includes(order?.payment_method)) return { id: 'due', label: 'Outstanding balance', tone: 'due' };
+  return { id: 'waiting', label: 'Waiting for payment', tone: 'due' };
+}
 // The customer's own form, opened from the texted link. The order key in the link is the pass.
 export const readRegisterForm = (orderId, key) => pos(`/register/${orderId}`, { query: { key }, auth: false });
 export const saveRegisterForm = (orderId, key, attendees) => pos(`/register/${orderId}`, { method: 'POST', query: { key }, json: { attendees }, auth: false });

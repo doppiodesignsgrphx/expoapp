@@ -11,6 +11,10 @@
  *   GET  /register/{id}?key=     The customer's phone reads what their order needs.
  *   POST /register/{id}?key=     The customer sends the attendee details.
  *   POST /transfers              Staff move a ticket to another person.
+ *   GET  /orders?event_id=       Staff list an event's ticket orders.
+ *   GET  /orders/{id}            Staff read one order: tickets, attendees, notes.
+ *   POST /orders/{id}/note       Staff add a note to an order.
+ *   POST /orders/{id}/cancel     Staff cancel an order that has not been paid.
  *
  * Nothing here handles card numbers. A card is always paid on WooCommerce's own
  * payment page for the order.
@@ -67,6 +71,26 @@ function oems_pos_register_routes() {
 			'callback'            => 'oems_pos_register_save',
 			'permission_callback' => 'oems_pos_holds_order_key',
 		),
+	) );
+	register_rest_route( OEMS_POS_NAMESPACE, '/orders', array(
+		'methods'             => 'GET',
+		'callback'            => 'oems_pos_orders_list',
+		'permission_callback' => 'oems_pos_staff_only',
+	) );
+	register_rest_route( OEMS_POS_NAMESPACE, "/orders/$id", array(
+		'methods'             => 'GET',
+		'callback'            => 'oems_pos_orders_read',
+		'permission_callback' => 'oems_pos_staff_only',
+	) );
+	register_rest_route( OEMS_POS_NAMESPACE, "/orders/$id/note", array(
+		'methods'             => 'POST',
+		'callback'            => 'oems_pos_orders_note',
+		'permission_callback' => 'oems_pos_staff_only',
+	) );
+	register_rest_route( OEMS_POS_NAMESPACE, "/orders/$id/cancel", array(
+		'methods'             => 'POST',
+		'callback'            => 'oems_pos_orders_cancel',
+		'permission_callback' => 'oems_pos_staff_only',
 	) );
 	register_rest_route( OEMS_POS_NAMESPACE, '/transfers', array(
 		'methods'             => 'POST',
@@ -280,6 +304,23 @@ function oems_pos_customer_text( WC_Order $order, $needs_details, $needs_payment
 	return '';
 }
 
+/**
+ * Whether the money for an order has been received.
+ * WooCommerce stamps a paid date on any order that reaches Processing, which
+ * includes pay at registration and check orders that still owe. So those two
+ * count as paid only once the order is Completed.
+ */
+function oems_pos_is_paid( WC_Order $order ) {
+	$status = $order->get_status();
+	if ( 'completed' === $status ) {
+		return true;
+	}
+	if ( 'processing' === $status ) {
+		return ! in_array( $order->get_payment_method(), array( 'cod', 'cheque' ), true );
+	}
+	return false;
+}
+
 /** The order as the app needs to see it. */
 function oems_pos_order_summary( WC_Order $order ) {
 	$units = oems_pos_ticket_units( $order );
@@ -288,7 +329,7 @@ function oems_pos_order_summary( WC_Order $order ) {
 		'order_id'          => $order->get_id(),
 		'status'            => $order->get_status(),
 		'total'             => wc_format_decimal( $order->get_total(), 2 ),
-		'paid'              => (bool) $order->get_date_paid(),
+		'paid'              => oems_pos_is_paid( $order ),
 		'payment_method'    => $order->get_payment_method(),
 		'tickets'           => count( $units ),
 		'registration_ids'  => array_map( 'intval', $made ),
@@ -437,7 +478,7 @@ function oems_pos_mark_paid( WP_REST_Request $request ) {
 	if ( ! in_array( $method, array( 'cash', 'check' ), true ) ) {
 		return new WP_Error( 'oems_pos_payment', 'Choose cash or check.', array( 'status' => 400 ) );
 	}
-	if ( $order->get_date_paid() || in_array( $order->get_status(), array( 'completed', 'refunded', 'cancelled' ), true ) ) {
+	if ( oems_pos_is_paid( $order ) || in_array( $order->get_status(), array( 'refunded', 'cancelled' ), true ) ) {
 		return new WP_Error( 'oems_pos_settled', 'This order is already settled.', array( 'status' => 409 ) );
 	}
 	oems_pos_record_payment( $order, $method );
@@ -590,4 +631,212 @@ function oems_pos_transfer( WP_REST_Request $request ) {
 		'badge_code'      => $code,
 		'text_sent'       => $texted,
 	) );
+}
+
+/* ---------------------------------------------------------------------------
+ * Staff: manage orders
+ * ------------------------------------------------------------------------- */
+
+/** The IDs of every order holding a ticket for an event, newest first. */
+function oems_pos_event_order_ids( $event_id ) {
+	global $wpdb;
+
+	$tickets = get_posts( array(
+		'post_type'        => 'product',
+		'post_status'      => 'any',
+		'posts_per_page'   => -1,
+		'fields'           => 'ids',
+		'meta_key'         => '_event_id',
+		'meta_value'       => (string) $event_id,
+		'suppress_filters' => true,
+	) );
+	if ( ! $tickets ) {
+		return array();
+	}
+
+	// Order lines live in the same two tables whichever way WooCommerce stores orders.
+	$in  = implode( ',', array_map( 'intval', $tickets ) );
+	$ids = $wpdb->get_col(
+		"SELECT DISTINCT i.order_id
+		 FROM {$wpdb->prefix}woocommerce_order_items i
+		 JOIN {$wpdb->prefix}woocommerce_order_itemmeta m ON m.order_item_id = i.order_item_id
+		 WHERE i.order_item_type = 'line_item' AND m.meta_key = '_product_id' AND m.meta_value IN ($in)
+		 ORDER BY i.order_id DESC"
+	);
+	return array_map( 'intval', $ids );
+}
+
+/** How many registrations each of these orders has. */
+function oems_pos_registration_counts( array $order_ids ) {
+	global $wpdb;
+	if ( ! $order_ids ) {
+		return array();
+	}
+	$in   = "'" . implode( "','", array_map( 'intval', $order_ids ) ) . "'";
+	$rows = $wpdb->get_results(
+		"SELECT m.meta_value AS order_id, COUNT(*) AS made
+		 FROM {$wpdb->postmeta} m
+		 JOIN {$wpdb->posts} p ON p.ID = m.post_id
+		 WHERE m.meta_key = '_order_id' AND m.meta_value IN ($in)
+		   AND p.post_type = 'event_registration' AND p.post_status NOT IN ( 'trash', 'auto-draft' )
+		 GROUP BY m.meta_value"
+	);
+	$counts = array();
+	foreach ( $rows as $row ) {
+		$counts[ (int) $row->order_id ] = (int) $row->made;
+	}
+	return $counts;
+}
+
+/** One order as a row in the app's list. */
+function oems_pos_order_row( WC_Order $order, $registrations ) {
+	$tickets = 0;
+	foreach ( $order->get_items() as $item ) {
+		$tickets += (int) $item->get_quantity();
+	}
+	$created = $order->get_date_created();
+	return array(
+		'order_id'             => $order->get_id(),
+		'number'               => $order->get_order_number(),
+		'status'               => $order->get_status(),
+		'total'                => wc_format_decimal( $order->get_total(), 2 ),
+		'paid'                 => oems_pos_is_paid( $order ),
+		'payment_method'       => $order->get_payment_method(),
+		'payment_method_title' => $order->get_payment_method_title(),
+		'created'              => $created ? $created->date( 'c' ) : '',
+		'at_desk'              => 'oems-expo-app' === $order->get_created_via(),
+		'tickets'              => $tickets,
+		'registrations'        => (int) $registrations,
+		'buyer'                => array(
+			'first_name' => $order->get_billing_first_name(),
+			'last_name'  => $order->get_billing_last_name(),
+			'email'      => $order->get_billing_email(),
+			'phone'      => $order->get_billing_phone(),
+		),
+	);
+}
+
+/** GET /orders?event_id=&page=&per_page=  The app reads every page once and searches on its own side. */
+function oems_pos_orders_list( WP_REST_Request $request ) {
+	if ( ! function_exists( 'wc_get_order' ) ) {
+		return new WP_Error( 'oems_pos_missing_woo', 'WooCommerce is not active.', array( 'status' => 503 ) );
+	}
+	$event_id = (int) $request->get_param( 'event_id' );
+	if ( 'event_listing' !== get_post_type( $event_id ) ) {
+		return new WP_Error( 'oems_pos_event', 'That event was not found.', array( 'status' => 400 ) );
+	}
+	$per_page = min( 200, max( 1, (int) ( $request->get_param( 'per_page' ) ?: 100 ) ) );
+	$page     = max( 1, (int) ( $request->get_param( 'page' ) ?: 1 ) );
+
+	$all    = oems_pos_event_order_ids( $event_id );
+	$slice  = array_slice( $all, ( $page - 1 ) * $per_page, $per_page );
+	$counts = oems_pos_registration_counts( $slice );
+
+	$rows = array();
+	foreach ( $slice as $order_id ) {
+		$order = wc_get_order( $order_id );
+		// Refunds are stored as their own records; only real orders are listed.
+		if ( $order instanceof WC_Order && 'shop_order' === $order->get_type() ) {
+			$rows[] = oems_pos_order_row( $order, $counts[ $order_id ] ?? 0 );
+		}
+	}
+
+	return rest_ensure_response( array(
+		'orders'      => $rows,
+		'total'       => count( $all ),
+		'total_pages' => (int) ceil( count( $all ) / $per_page ),
+	) );
+}
+
+/** The order with everything the order page shows. */
+function oems_pos_order_detail( WC_Order $order ) {
+	$made = oems_pos_order_registrations( $order->get_id() );
+	$out  = oems_pos_order_row( $order, count( $made ) );
+
+	$out['items'] = array();
+	foreach ( $order->get_items() as $item ) {
+		$out['items'][] = array(
+			'name'     => $item->get_name(),
+			'quantity' => (int) $item->get_quantity(),
+			'total'    => wc_format_decimal( $item->get_total(), 2 ),
+		);
+	}
+
+	$out['attendees'] = array();
+	foreach ( $made as $registration_id ) {
+		$out['attendees'][] = array(
+			'id'         => (int) $registration_id,
+			'event_id'   => (int) wp_get_post_parent_id( $registration_id ),
+			'name'       => trim( get_post_meta( $registration_id, '_attendee_name', true ) . ' ' . get_post_meta( $registration_id, '_attendee_last_name', true ) ),
+			'email'      => (string) get_post_meta( $registration_id, '_attendee_email', true ),
+			'status'     => (string) get_post_status( $registration_id ),
+			'checked_in' => (bool) (int) get_post_meta( $registration_id, '_check_in', true ),
+		);
+	}
+
+	$out['notes'] = array();
+	foreach ( wc_get_order_notes( array( 'order_id' => $order->get_id(), 'orderby' => 'date_created', 'order' => 'DESC' ) ) as $note ) {
+		$out['notes'][] = array(
+			'content' => wp_strip_all_tags( $note->content ),
+			'by'      => (string) $note->added_by,
+			'date'    => $note->date_created ? $note->date_created->date( 'c' ) : '',
+		);
+	}
+
+	$out['details_missing'] = max( 0, $out['tickets'] - count( $made ) );
+	$out['pay_url']         = $order->needs_payment() ? $order->get_checkout_payment_url() : '';
+	$out['form_url']        = oems_pos_form_url( $order );
+	return $out;
+}
+
+/** Find a real order by the ID in the route, or return a WP_Error. */
+function oems_pos_find_order( WP_REST_Request $request ) {
+	$order = function_exists( 'wc_get_order' ) ? wc_get_order( (int) $request['id'] ) : false;
+	if ( ! $order instanceof WC_Order || 'shop_order' !== $order->get_type() ) {
+		return new WP_Error( 'oems_pos_order', 'That order was not found.', array( 'status' => 404 ) );
+	}
+	return $order;
+}
+
+function oems_pos_orders_read( WP_REST_Request $request ) {
+	$order = oems_pos_find_order( $request );
+	return is_wp_error( $order ) ? $order : rest_ensure_response( oems_pos_order_detail( $order ) );
+}
+
+/** Body: { note }  Saved as a private staff note on the order, under the signed-in staff member's name. */
+function oems_pos_orders_note( WP_REST_Request $request ) {
+	$order = oems_pos_find_order( $request );
+	if ( is_wp_error( $order ) ) {
+		return $order;
+	}
+	$body = (array) $request->get_json_params();
+	$note = sanitize_textarea_field( wp_unslash( (string) ( $body['note'] ?? '' ) ) );
+	if ( '' === $note ) {
+		return new WP_Error( 'oems_pos_note', 'Write the note first.', array( 'status' => 400 ) );
+	}
+	$order->add_order_note( $note, 0, true );
+	return rest_ensure_response( oems_pos_order_detail( wc_get_order( $order->get_id() ) ) );
+}
+
+/**
+ * Body: { reason }
+ * Only an order that has not been paid can be cancelled here. A paid order needs
+ * a refund, which this does not do. Cancelling the order is what tells the event
+ * plugin to cancel its registrations.
+ */
+function oems_pos_orders_cancel( WP_REST_Request $request ) {
+	$order = oems_pos_find_order( $request );
+	if ( is_wp_error( $order ) ) {
+		return $order;
+	}
+	if ( in_array( $order->get_status(), array( 'cancelled', 'refunded' ), true ) ) {
+		return new WP_Error( 'oems_pos_settled', 'This order is already closed.', array( 'status' => 409 ) );
+	}
+	if ( oems_pos_is_paid( $order ) ) {
+		return new WP_Error( 'oems_pos_paid', 'This order has been paid. It needs a refund, which cannot be done here.', array( 'status' => 409 ) );
+	}
+	$body   = (array) $request->get_json_params();
+	$reason = sanitize_textarea_field( wp_unslash( (string) ( $body['reason'] ?? '' ) ) );
+	$order->update_status( 'cancelled', trim( 'Cancelled at the registration desk in the Expo app. ' . $reason ) );
+	return rest_ensure_response( oems_pos_order_detail( wc_get_order( $order->get_id() ) ) );
 }
