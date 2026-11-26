@@ -387,3 +387,8 @@ h1, h2, h3 { font-weight: 500; }
 .scanner .code-outline-highlight { stroke: var(--navy) !important; stroke-width: 6 !important; stroke-linecap: square !important; stroke-linejoin: miter !important; }
 .scanner.scanned .scan-region-highlight-svg,
 .scanner.scanned .code-outline-highlight { stroke: #1a8f4c !important; }
+
+/* Sections fill the middle column on every tab */
+.content .screen, .content .panel, .content .panel.wide, .content .detail { max-width: none; width: 100%; }
+.choice { align-items: center; }
+.choice input { margin-top: 0; }
