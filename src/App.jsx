@@ -156,7 +156,7 @@ export default function App() {
           <button className={`nav-item${here === 'people' ? ' active' : ''}`} onClick={() => go('people')}><UsersIcon /><span>Attendees</span></button>
           <button className={`nav-item${here === 'sessions' ? ' active' : ''}`} onClick={() => go('sessions')}><CalendarIcon /><span>Sessions</span></button>
           <button className={`nav-item${here === 'tickets' ? ' active' : ''}`} onClick={() => go('tickets')} disabled={!expo} title={expo ? '' : 'Open the Expo on Home first'}><TicketIcon /><span>Tickets</span></button>
-          <button className={`nav-item${here === 'orders' ? ' active' : ''}`} onClick={() => go('orders')} disabled={!expo} title={expo ? '' : 'Open the Expo on Home first'}><NoteIcon /><span>Orders</span></button>
+          <button className={`nav-item${here === 'orders' ? ' active' : ''}`} onClick={() => go('orders')} disabled={!expo} title={expo ? '' : 'Open the Expo on Home first'}><NoteIcon /><span>Registration</span></button>
           <button className={`nav-item${here === 'transfers' ? ' active' : ''}`} onClick={() => go('transfers')}><TransferIcon /><span>Transfers</span></button>
           <p className="nav-head">Coming soon</p>
           {PLACEHOLDERS.map(({ label, Icon }) => (

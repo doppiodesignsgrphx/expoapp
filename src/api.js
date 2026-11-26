@@ -204,7 +204,7 @@ export function orderState(order) {
   if (status === 'cancelled' || status === 'failed') return { id: 'closed', label: status === 'failed' ? 'Payment failed' : 'Cancelled', tone: 'bad' };
   if (order?.paid || status === 'completed') return { id: 'paid', label: 'Paid', tone: 'good' };
   if (['cod', 'cheque'].includes(order?.payment_method)) return { id: 'due', label: 'Outstanding balance', tone: 'due' };
-  return { id: 'waiting', label: 'Waiting for payment', tone: 'due' };
+  return { id: 'waiting', label: 'Pending', tone: '' };
 }
 // The customer's own form, opened from the texted link. The order key in the link is the pass.
 export const readRegisterForm = (orderId, key) => pos(`/register/${orderId}`, { query: { key }, auth: false });

@@ -14,7 +14,7 @@ const MAX_ROWS = 200;
 const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'due', label: 'Outstanding balance' },
-  { id: 'waiting', label: 'Waiting for payment' },
+  { id: 'waiting', label: 'Pending' },
   { id: 'paid', label: 'Paid' },
   { id: 'closed', label: 'Cancelled' },
 ];
@@ -244,7 +244,7 @@ export default function Orders({ event, query = '', refreshKey, onBusy, register
   return (
     <div className="screen">
       <div className="section-head">
-        <h1 className="page-title">Orders</h1>
+        <h1 className="page-title">Registration</h1>
         <span className="hint">{event.name}{orders ? `, ${shown.length === counts.all ? `${counts.all} orders` : `${shown.length} of ${counts.all}`}` : ''}</span>
       </div>
       {error && <p className="notice error" role="status">{error}</p>}

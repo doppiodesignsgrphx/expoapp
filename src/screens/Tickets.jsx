@@ -148,7 +148,7 @@ export default function Tickets({ event, refreshKey, onBusy, onStats }) {
         <section className="panel wide">
           <dl>
             <dt>Total</dt><dd>{money(sale.total)}</dd>
-            <dt>Payment</dt><dd>{sale.paid ? 'Paid' : sale.payment_method === 'cod' ? 'Outstanding balance, pay at registration' : 'Waiting for card payment'}</dd>
+            <dt>Payment</dt><dd>{sale.paid ? 'Paid' : sale.payment_method === 'cod' ? 'Outstanding balance, pay at registration' : 'Pending'}</dd>
             <dt>Tickets</dt><dd>{sale.tickets}</dd>
             <dt>Attendee details</dt><dd>{sale.details_missing > 0 ? `${sale.details_missing} still to be filled in by the customer` : 'Complete'}</dd>
             <dt>Text to customer</dt><dd>{sale.text_sent ? `Sent to ${buyer.phone}` : 'Not sent'}</dd>
