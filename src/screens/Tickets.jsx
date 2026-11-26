@@ -1,26 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import { createPosOrder, eventTypes, listSessions, listTickets, markOrderPaid, textOrderAgain } from '../api.js';
+import { createPosOrder, isCheckedIn, listAttendees, listTickets, markOrderPaid, textOrderAgain } from '../api.js';
 import { clearCache, readCache, writeCache } from '../cache.js';
 
 // The point of sale. One page, top to bottom:
-//   1. pick ticket quantities from the Expo's ticket options
+//   1. pick ticket quantities from the open event's ticket options
 //   2. enter the buyer
 //   3. choose who fills in the attendee details: the customer on their phone, or staff here
 //   4. choose how it is paid
 // The site creates the order. Card numbers are never typed into the app: a card
 // is paid on the site's own payment page, opened from a QR code or a texted link.
 
-const EXPO_TYPE = (import.meta.env.VITE_EXPO_TYPE || 'Expo').trim().toLowerCase();
-const isExpo = (ev) => eventTypes(ev).some((t) => t.trim().toLowerCase() === EXPO_TYPE);
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
 const blank = () => ({ first_name: '', last_name: '', email: '', phone: '' });
 
 const PAYMENTS = [
-  { id: 'card', label: 'Card', note: 'The customer pays on the site from a QR code or a texted link. The order shows as paid when it goes through.' },
-  { id: 'pay_later', label: 'Pay at registration', note: 'The ticket is issued with an outstanding balance.' },
-  { id: 'cash', label: 'Cash received', note: 'Marks the order paid now.' },
-  { id: 'check', label: 'Check received', note: 'Marks the order paid now.' },
+  { id: 'card', label: 'Card' },
+  { id: 'pay_later', label: 'Pay at registration' },
+  { id: 'cash', label: 'Cash received' },
+  { id: 'check', label: 'Check received' },
 ];
 
 function Qr({ value, label }) {
@@ -33,10 +31,11 @@ function Qr({ value, label }) {
   return src ? <img className="pos-qr" src={src} alt={label} /> : null;
 }
 
-export default function Tickets({ refreshKey, onBusy }) {
-  const [events, setEvents] = useState(() => readCache('sessions:all') || []);
-  const [eventId, setEventId] = useState(null);
+// Sells for the event that is open, the same one Check-in works on.
+export default function Tickets({ event, refreshKey, onBusy, onStats }) {
+  const eventId = event.id;
   const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState({});
   const [buyer, setBuyer] = useState(blank);
   const [fill, setFill] = useState('text'); // text | here
@@ -46,35 +45,30 @@ export default function Tickets({ refreshKey, onBusy }) {
   const [error, setError] = useState('');
   const [sale, setSale] = useState(null);
   const [note, setNote] = useState('');
+  const [sold, setSold] = useState(0);
 
-  // The events to sell for. The one tagged as the Expo is picked first.
+  // The side panel keeps this event's counts, and picks up each new sale.
   useEffect(() => {
     let live = true;
-    listSessions()
-      .then((list) => {
-        if (!live) return;
-        writeCache('sessions:all', list);
-        setEvents(list);
-      })
-      .catch((err) => live && setError(err.message));
+    const key = `attendees:${event.id}`;
+    const show = (list) => onStats?.({ label: event.name, registered: list.length, checkedIn: list.filter(isCheckedIn).length });
+    const cached = readCache(key);
+    if (cached) show(cached);
+    listAttendees(event.id).then((list) => { if (live) { writeCache(key, list); show(list); } }).catch(() => {});
     return () => { live = false; };
-  }, [refreshKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event.id, refreshKey, sold]);
 
   useEffect(() => {
-    if (eventId || events.length === 0) return;
-    setEventId((events.find(isExpo) || events[0]).id);
-  }, [events, eventId]);
-
-  useEffect(() => {
-    if (!eventId) return undefined;
     let live = true;
     onBusy?.(true);
+    setLoading(true);
     setTickets([]);
     setQty({});
     listTickets(eventId)
       .then((list) => live && setTickets(list))
       .catch((err) => live && setError(err.message))
-      .finally(() => live && onBusy?.(false));
+      .finally(() => { if (live) { setLoading(false); onBusy?.(false); } });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, refreshKey]);
@@ -110,6 +104,7 @@ export default function Tickets({ refreshKey, onBusy }) {
       });
       clearCache(); // new registrations: lists must be read again
       setSale(result);
+      setSold((n) => n + 1);
       setNote('');
     } catch (err) {
       setError(err.message);
@@ -191,18 +186,13 @@ export default function Tickets({ refreshKey, onBusy }) {
     <form className="screen" onSubmit={submit}>
       <div className="section-head">
         <h1 className="page-title">Tickets</h1>
-        <label className="inline-select">
-          <span>Event</span>
-          <select value={eventId || ''} onChange={(e) => setEventId(Number(e.target.value))}>
-            {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-          </select>
-        </label>
+        <span className="hint">{event.name}</span>
       </div>
       {error && <p className="notice error" role="status">{error}</p>}
 
       <section className="panel wide">
         <h2 className="section-title">1. Tickets</h2>
-        {tickets.length === 0 ? <p className="empty">{eventId ? 'No tickets are set up for this event, or they are still loading.' : 'Loading events'}</p> : (
+        {tickets.length === 0 ? <p className="empty">{loading ? 'Loading tickets' : 'No tickets are set up for this event.'}</p> : (
           <ul className="pos-tickets">
             {tickets.map((t) => (
               <li key={t.id}>
@@ -266,7 +256,7 @@ export default function Tickets({ refreshKey, onBusy }) {
           {PAYMENTS.map((p) => (
             <label key={p.id} className={`choice${payment === p.id ? ' on' : ''}`}>
               <input type="radio" name="payment" checked={payment === p.id} onChange={() => setPayment(p.id)} />
-              <span><strong>{p.label}</strong>{p.note}</span>
+              <span><strong>{p.label}</strong></span>
             </label>
           ))}
         </div>
