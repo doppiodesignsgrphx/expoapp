@@ -163,6 +163,26 @@ export function listAttendees(eventId) {
   return fetchAll(`/events/${eventId}/attendees`, {}, 'event_attendees');
 }
 
+// The WooCommerce order behind a registration: status, payment method and total.
+export function getOrder(eventId, orderId) {
+  return request(`/events/${eventId}/orders/${orderId}`);
+}
+
+// An order still owes money when it has not been paid yet. Pay at registration
+// (cod) and check orders count as unpaid until staff mark the order completed.
+const PAY_LATER = ['cod', 'cheque'];
+export const balanceDue = (order) => Boolean(order) && (
+  ['pending', 'on-hold', 'failed'].includes(order.status)
+  || (PAY_LATER.includes(order.payment_method) && order.status !== 'completed')
+);
+
+// The site does not send an event's type yet. These are the places it would
+// arrive, so the tag shows up as soon as the site starts sending it.
+export function eventTypes(ev) {
+  const raw = ev?.event_types ?? ev?.event_type ?? ev?.types ?? ev?.meta_data?._event_type ?? [];
+  return (Array.isArray(raw) ? raw : [raw]).map((t) => (t && typeof t === 'object' ? t.name : t)).filter(Boolean).map(String);
+}
+
 export function getAttendee(eventId, attendeeId) {
   return request(`/events/${eventId}/attendees/${attendeeId}`);
 }

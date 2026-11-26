@@ -5,25 +5,28 @@ import Login from './screens/Login.jsx';
 import Events from './screens/Events.jsx';
 import Attendees from './screens/Attendees.jsx';
 import Search from './screens/Search.jsx';
+import People from './screens/People.jsx';
+import Sessions from './screens/Sessions.jsx';
+import AttendeeDetail from './screens/AttendeeDetail.jsx';
 import AttendeePreview from './screens/AttendeePreview.jsx';
 import PrinterSettings from './components/PrinterSettings.jsx';
 import logo from './assets/oems-logo.svg';
 import {
-  BackIcon, BellIcon, CalendarIcon, ChartIcon, CheckIcon, ClockIcon, CloseIcon, HomeIcon, LogOutIcon,
+  BackIcon, BellIcon, CalendarIcon, ChartIcon, CheckIcon, ClockIcon, CloseIcon, FlagIcon, HomeIcon, LogOutIcon,
   MenuIcon, MessageIcon, PlusIcon, PrinterIcon, RefreshIcon, SearchIcon, SettingsIcon, TicketIcon, TransferIcon, UsersIcon,
 } from './icons.jsx';
 
 // Menu items for features that are not built yet. They hold their place in the
 // layout and do nothing.
 const PLACEHOLDERS = [
-  { label: 'Attendees', Icon: UsersIcon },
-  { label: 'Sessions', Icon: CalendarIcon },
   { label: 'Tickets', Icon: TicketIcon },
   { label: 'Transfers', Icon: TransferIcon },
   { label: 'Staff schedule', Icon: ClockIcon },
   { label: 'Messages', Icon: MessageIcon },
   { label: 'Alerts', Icon: BellIcon },
   { label: 'Reports', Icon: ChartIcon },
+  { label: 'Analytics', Icon: ChartIcon },
+  { label: 'Escalate', Icon: FlagIcon },
 ];
 
 // The site's sign-in reply does not always carry a name, so try the likely
@@ -40,6 +43,8 @@ export default function App() {
   const [user, setUser] = useState(session.token ? session.user : null);
   const [event, setEvent] = useState(null);
   const [openAttendee, setOpenAttendee] = useState(null);
+  const [page, setPage] = useState('home'); // home | people | sessions
+  const [profile, setProfile] = useState(null); // { attendee, event } while an attendee's own page is open
   const [showPrinter, setShowPrinter] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -56,22 +61,31 @@ export default function App() {
   }, []);
 
   // The search box means something different on each screen, so clear it on the way in and out.
-  useEffect(() => setQuery(''), [event?.id]);
+  useEffect(() => setQuery(''), [event?.id, page, profile?.attendee?.id]);
 
   function pick(ev, attendeeId = null) {
+    setProfile(null);
     setOpenAttendee(attendeeId);
     setEvent(ev);
   }
 
-  function back() {
-    if (showPrinter) return setShowPrinter(false);
-    if (screenBack.current && screenBack.current()) return undefined;
-    return setEvent(null);
+  function openProfile(attendee, ev) {
+    setProfile({ attendee, event: ev });
   }
 
-  function goHome() {
+  function back() {
+    if (showPrinter) return setShowPrinter(false);
+    if (profile) return setProfile(null);
+    if (screenBack.current && screenBack.current()) return undefined;
+    if (event) return setEvent(null);
+    return setPage('home');
+  }
+
+  function go(next) {
     setShowPrinter(false);
+    setProfile(null);
     setEvent(null);
+    setPage(next);
     setNavOpen(false);
   }
 
@@ -79,6 +93,8 @@ export default function App() {
     session.clear();
     setUser(null);
     setEvent(null);
+    setProfile(null);
+    setPage('home');
     setShowPrinter(false);
     setNavOpen(false);
   }
@@ -88,6 +104,11 @@ export default function App() {
 
   const name = displayName(user);
   const remaining = Math.max(0, stats.registered - stats.checkedIn);
+  // Which menu item is lit: an open attendee page belongs to Attendees, an open event to Check-in.
+  const here = profile ? 'people' : event ? 'checkin' : page;
+  const canGoBack = Boolean(showPrinter || profile || event || page !== 'home');
+  const hint = profile ? 'Search is off on this page' : event ? 'Find in this event by name, email or badge code'
+    : page === 'people' ? 'Find an attendee by name, email, phone or badge code' : page === 'sessions' ? 'Find a session by name, room or type' : 'Search attendees and sessions';
 
   return (
     <div className={`shell${navOpen ? ' nav-open' : ''}`}>
@@ -99,10 +120,12 @@ export default function App() {
         </div>
         <nav aria-label="Main">
           <p className="nav-head">Menu</p>
-          <button className={`nav-item${!event ? ' active' : ''}`} onClick={goHome}><HomeIcon /><span>Home</span></button>
-          <button className={`nav-item${event ? ' active' : ''}`} onClick={() => setNavOpen(false)} disabled={!event} title={event ? '' : 'Pick an event on Home first'}>
+          <button className={`nav-item${here === 'home' ? ' active' : ''}`} onClick={() => go('home')}><HomeIcon /><span>Home</span></button>
+          <button className={`nav-item${here === 'checkin' ? ' active' : ''}`} onClick={() => { setProfile(null); setNavOpen(false); }} disabled={!event} title={event ? '' : 'Pick an event or session first'}>
             <CheckIcon /><span>Check-in</span>
           </button>
+          <button className={`nav-item${here === 'people' ? ' active' : ''}`} onClick={() => go('people')}><UsersIcon /><span>Attendees</span></button>
+          <button className={`nav-item${here === 'sessions' ? ' active' : ''}`} onClick={() => go('sessions')}><CalendarIcon /><span>Sessions</span></button>
           <p className="nav-head">Coming soon</p>
           {PLACEHOLDERS.map(({ label, Icon }) => (
             <button key={label} className="nav-item placeholder" disabled><Icon /><span>{label}</span></button>
@@ -116,7 +139,7 @@ export default function App() {
       <div className="main">
         <header className="topbar">
           <button className="icon-btn nav-toggle" onClick={() => setNavOpen(true)} aria-label="Menu"><MenuIcon /></button>
-          <button className="icon-btn" onClick={back} disabled={!event && !showPrinter} aria-label="Back" title="Back"><BackIcon /></button>
+          <button className="icon-btn" onClick={back} disabled={!canGoBack} aria-label="Back" title="Back"><BackIcon /></button>
           <button className={`icon-btn${busy ? ' spinning' : ''}`} onClick={() => setRefreshKey((k) => k + 1)} aria-label="Refresh" title="Refresh"><RefreshIcon /></button>
           <label className="search">
             <SearchIcon />
@@ -125,7 +148,8 @@ export default function App() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={event ? 'Find in this event by name, email or badge code' : 'Search attendees and sessions'}
+              placeholder={hint}
+              disabled={Boolean(profile)}
             />
           </label>
           <span className="topbar-space" />
@@ -135,11 +159,17 @@ export default function App() {
 
         <div className="content">
           {showPrinter && <PrinterSettings onClose={() => setShowPrinter(false)} />}
-          {event
-            ? <Attendees key={event.id} event={event} openId={openAttendee} refreshKey={refreshKey} onBusy={setBusy} registerBack={registerBack} query={query} onQuery={setQuery} onStats={setStats} />
-            : query.trim()
-              ? <Search query={query} refreshKey={refreshKey} onBusy={setBusy} onPickEvent={pick} onPickAttendee={pick} />
-              : <Events onPick={pick} refreshKey={refreshKey} onBusy={setBusy} onStats={setStats} />}
+          {profile
+            ? <AttendeeDetail key={`${profile.event.id}:${profile.attendee.id}`} attendee={profile.attendee} event={profile.event} refreshKey={refreshKey} onOpenEvent={pick} />
+            : event
+              ? <Attendees key={event.id} event={event} openId={openAttendee} refreshKey={refreshKey} onBusy={setBusy} registerBack={registerBack} query={query} onQuery={setQuery} onStats={setStats} onOpenProfile={openProfile} />
+              : page === 'people'
+                ? <People query={query} refreshKey={refreshKey} onOpen={openProfile} onStats={setStats} />
+                : page === 'sessions'
+                  ? <Sessions query={query} refreshKey={refreshKey} onBusy={setBusy} onPick={pick} onStats={setStats} />
+                  : query.trim()
+                    ? <Search query={query} refreshKey={refreshKey} onBusy={setBusy} onPickEvent={pick} onPickAttendee={pick} />
+                    : <Events onPick={pick} refreshKey={refreshKey} onBusy={setBusy} onStats={setStats} />}
         </div>
       </div>
 

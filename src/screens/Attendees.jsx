@@ -1,24 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { checkinByTicketCode, fullName, hasTicket, getAttendee, isCheckedIn, listAttendees, meta, setCheckin, uniqueId, withCheckin } from '../api.js';
+import { checkinByTicketCode, fullName, getAttendee, isCheckedIn, listAttendees, meta, setCheckin, uniqueId, withCheckin } from '../api.js';
 import { readCache, writeCache } from '../cache.js';
 import Scanner from '../components/Scanner.jsx';
 import Badge from '../components/Badge.jsx';
+import StatusTag, { useOrder } from '../components/StatusTag.jsx';
 import { primeFeedback, signal } from '../feedback.js';
 import { useWedgeScanner } from '../wedge.js';
 import { getAutoPrint } from '../prefs.js';
 import { ScanIcon } from '../icons.jsx';
 
-// Confirmed with a ticket is green. Confirmed without a ticket still owes a purchase, so it is red.
-function StatusTag({ attendee }) {
-  const status = String(attendee.status || '').toLowerCase();
-  if (status === 'confirmed' && !hasTicket(attendee)) return <span className="status bad">Needs to purchase ticket</span>;
-  if (status === 'confirmed') return <span className="status good">Confirmed</span>;
-  return <span className="status">{attendee.status || 'Unknown'}</span>;
-}
-
 const TICKET_CODE = /^(\d+)-(\d+)-(\d+)$/;
 
-export default function Attendees({ event, openId = null, refreshKey, onBusy, registerBack, query = '', onQuery, onStats }) {
+export default function Attendees({ event, openId = null, refreshKey, onBusy, registerBack, query = '', onQuery, onStats, onOpenProfile }) {
   const key = `attendees:${event.id}`;
   const [attendees, setAttendees] = useState(() => readCache(key) || []);
   const [busy, setBusy] = useState(false);
@@ -29,7 +22,6 @@ export default function Attendees({ event, openId = null, refreshKey, onBusy, re
   const [message, setMessage] = useState(null);
   const [autoPrint, setAutoPrint] = useState(null);
   const [badge, setBadge] = useState({ ready: false, busy: false });
-  const [logNote, setLogNote] = useState(false);
   const badgeRef = useRef(null);
   const latest = useRef(0);
   const list = useRef(attendees);
@@ -77,6 +69,7 @@ export default function Attendees({ event, openId = null, refreshKey, onBusy, re
   }, [registerBack, selectedId]);
 
   const selected = useMemo(() => attendees.find((a) => a.id === selectedId) || null, [attendees, selectedId]);
+  const order = useOrder(event.id, selected);
 
   // Show the change at once, then confirm with the server. Undo it if the server refuses.
   async function toggle(attendee, checkedIn) {
@@ -209,7 +202,7 @@ export default function Attendees({ event, openId = null, refreshKey, onBusy, re
               <dt>Email</dt><dd>{meta(selected, '_attendee_email')}</dd>
               <dt>Ticket</dt><dd>{meta(selected, '_ticket_name')}</dd>
               <dt>Order</dt><dd>{meta(selected, '_order_id')}</dd>
-              <dt>Status</dt><dd><StatusTag attendee={selected} /></dd>
+              <dt>Status</dt><dd><StatusTag attendee={selected} order={order} /></dd>
               <dt>Check-in</dt><dd>{isCheckedIn(selected) ? `Checked in ${meta(selected, '_checkin_time')}` : 'Not checked in'}</dd>
             </dl>
             <div className="row bottom">
@@ -221,9 +214,8 @@ export default function Attendees({ event, openId = null, refreshKey, onBusy, re
           </div>
           <div className="detail-badge">
             <Badge ref={badgeRef} onState={setBadge} attendee={selected} event={event} autoPrint={autoPrint && autoPrint.id === selected.id ? autoPrint.token : null} />
-            {/* Goes to this person's log in the Attendees menu once that exists. */}
-            <button className="link log" onClick={() => setLogNote((v) => !v)}>Attendee log</button>
-            {logNote && <p className="hint" role="status">Opens in the Attendees menu once that is built.</p>}
+            {/* Opens this person's own page, which holds their sessions and log. */}
+            <button className="link log" onClick={() => onOpenProfile?.(selected, event)}>Attendee log</button>
           </div>
         </section>
       )}
@@ -236,7 +228,7 @@ export default function Attendees({ event, openId = null, refreshKey, onBusy, re
         <ul className="list">
           {shown.map((a) => (
             <li key={a.id}>
-              <button className={`list-item${a.id === selectedId ? ' current' : ''}`} onClick={() => { setSelectedId(a.id); setMessage(null); setLogNote(false); document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              <button className={`list-item${a.id === selectedId ? ' current' : ''}`} onClick={() => { setSelectedId(a.id); setMessage(null); document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                 <strong>{fullName(a)}</strong>
                 <span>{meta(a, '_attendee_email')}</span>
                 <span className={isCheckedIn(a) ? 'tag in' : 'tag'}>{isCheckedIn(a) ? 'Checked in' : 'Not checked in'}</span>

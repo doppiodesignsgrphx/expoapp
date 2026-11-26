@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { fullName, hasTicket, isCheckedIn, listAttendees, listEvents, meta, uniqueId } from '../api.js';
-import { readCache, writeCache } from '../cache.js';
+import { fullName, hasTicket, isCheckedIn, listEvents, meta, uniqueId } from '../api.js';
+import { usePeople } from '../people.js';
 
 const imageOf = (ev) => (Array.isArray(ev.images) ? ev.images[0] : ev.images) || '';
 const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
@@ -12,7 +12,7 @@ const MAX_ROWS = 25;
 export default function Search({ query, refreshKey, onBusy, onPickEvent, onPickAttendee }) {
   const [term, setTerm] = useState('');
   const [sessions, setSessions] = useState([]);
-  const [people, setPeople] = useState(() => readCache('search:people') || null);
+  const { people, error: peopleError } = usePeople(refreshKey);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const latest = useRef(0);
@@ -21,29 +21,6 @@ export default function Search({ query, refreshKey, onBusy, onPickEvent, onPickA
     const t = setTimeout(() => setTerm(query.trim()), 350);
     return () => clearTimeout(t);
   }, [query]);
-
-  // Everyone registered, with the event each registration belongs to.
-  useEffect(() => {
-    let live = true;
-    (async () => {
-      try {
-        const events = await listEvents({ withRegistrations: true });
-        const lists = await Promise.all(events.map(async (ev) => {
-          const cached = refreshKey ? null : readCache(`attendees:${ev.id}`);
-          const all = cached || await listAttendees(ev.id);
-          if (!cached) writeCache(`attendees:${ev.id}`, all);
-          return all.map((a) => ({ attendee: a, event: ev }));
-        }));
-        if (!live) return;
-        const flat = lists.flat();
-        writeCache('search:people', flat);
-        setPeople(flat);
-      } catch (err) {
-        if (live) setError(err.message);
-      }
-    })();
-    return () => { live = false; };
-  }, [refreshKey]);
 
   useEffect(() => {
     if (!term) return undefined;
@@ -69,7 +46,7 @@ export default function Search({ query, refreshKey, onBusy, onPickEvent, onPickA
   return (
     <div className="screen">
       <h1 className="page-title">Search results for &ldquo;{query.trim()}&rdquo;</h1>
-      {error && <p className="notice error">{error}</p>}
+      {(error || peopleError) && <p className="notice error">{error || peopleError}</p>}
 
       <h2 className="section-title">Attendees</h2>
       {matches.length === 0 ? <p className="empty">{people ? 'No attendees found.' : 'Loading attendees'}</p> : (
