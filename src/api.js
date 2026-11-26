@@ -163,6 +163,54 @@ export function listAttendees(eventId) {
   return fetchAll(`/events/${eventId}/attendees`, {}, 'event_attendees');
 }
 
+// The WooCommerce order behind a registration: status, payment method and total.
+export function getOrder(eventId, orderId) {
+  return request(`/events/${eventId}/orders/${orderId}`);
+}
+
+// An order still owes money when it has not been paid yet. Pay at registration
+// (cod) and check orders count as unpaid until staff mark the order completed.
+const PAY_LATER = ['cod', 'cheque'];
+export const balanceDue = (order) => Boolean(order) && (
+  ['pending', 'on-hold', 'failed'].includes(order.status)
+  || (PAY_LATER.includes(order.payment_method) && order.status !== 'completed')
+);
+
+// Session types are a site taxonomy. The event list does not say which type an
+// event has, but it can be filtered by type. So the types are read first, then
+// the events of each type, and every event is tagged with the names it came back under.
+export async function listEventTypes() {
+  const data = await request('/taxonomy-list', { query: { taxonomy: 'event_listing_type' } });
+  return data?.terms || [];
+}
+
+export async function listSessions() {
+  const events = await listEvents();
+  const tags = new Map();
+  try {
+    const types = await listEventTypes();
+    let next = 0;
+    const worker = async () => {
+      while (next < types.length) {
+        const type = types[next];
+        next += 1;
+        const ofType = await fetchAll('/events', { type: type.id, status: 'publish' }, 'events');
+        ofType.forEach((ev) => tags.set(ev.id, [...(tags.get(ev.id) || []), type.name]));
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(6, types.length) }, worker));
+  } catch {
+    // Types could not be read. The sessions still list, without tags.
+  }
+  return events.map((ev) => (tags.has(ev.id) ? { ...ev, event_types: tags.get(ev.id) } : ev));
+}
+
+// The type names on an event, however they arrived.
+export function eventTypes(ev) {
+  const raw = ev?.event_types ?? ev?.event_type ?? ev?.types ?? ev?.meta_data?._event_type ?? [];
+  return (Array.isArray(raw) ? raw : [raw]).map((t) => (t && typeof t === 'object' ? t.name : t)).filter(Boolean).map(String);
+}
+
 export function getAttendee(eventId, attendeeId) {
   return request(`/events/${eventId}/attendees/${attendeeId}`);
 }

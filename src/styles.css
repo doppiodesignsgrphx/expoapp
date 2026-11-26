@@ -288,6 +288,23 @@ h1, h2, h3 { font-weight: 500; }
 .ticket-body h2 { font-size: 20px; }
 .ticket-code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; letter-spacing: 0.08em; color: var(--ink-2); }
 
+/* Status: owes a balance */
+.status.due { background: #fff4d6; color: #7a4b00; border-color: #c98a00; text-transform: none; }
+
+/* Session type tag */
+.type-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; font-size: 12px; font-weight: 500; background: var(--brand-tint); color: var(--navy); border-radius: var(--control); vertical-align: middle; }
+.row-card.session { grid-template-columns: 48px minmax(0, 1.4fr) minmax(0, 1.3fr) auto; }
+
+/* Attendee page */
+.reg-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.session-box dl { grid-template-columns: max-content 1fr; font-size: 14px; }
+.session-box .link { font-size: 14px; flex: none; }
+.search input:disabled { cursor: not-allowed; }
+
+@media (max-width: 860px) {
+  .row-card.session { grid-template-columns: 48px minmax(0, 1fr); }
+}
+
 /* Badge. 62mm wide to match Brother DK continuous tape. Keep in step with src/badgeImage.js. */
 .badge-wrap { display: grid; gap: 10px; justify-items: start; }
 .badge { width: 62mm; height: 100mm; background: #fff; color: #000; border: 0.6mm solid #000; display: flex; flex-direction: column; text-align: center; overflow: hidden; }
