@@ -94,7 +94,7 @@ button:disabled { cursor: default; }
 .btn:disabled { opacity: 0.55; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
 label { display: grid; gap: 6px; font-weight: 500; font-size: 14px; }
-.panel input:not([type=checkbox]), .panel select { padding: 12px; border: 1px solid #8a8a9c; width: 100%; background: #fff; color: var(--ink); }
+.panel input:not([type=checkbox]):not([type=radio]), .panel select { padding: 12px; border: 1px solid #8a8a9c; width: 100%; background: #fff; color: var(--ink); }
 .check { display: flex; align-items: center; gap: 10px; font-size: 16px; }
 .check input { width: 20px; height: 20px; accent-color: var(--navy); flex: none; }
 .panel { background: #fff; border: 1px solid var(--line); padding: 24px; display: grid; gap: 14px; max-width: 640px; margin-bottom: 24px; border-radius: var(--radius); }
@@ -229,7 +229,7 @@ h1, h2, h3 { font-weight: 500; }
 .promo h3 { font-weight: 500; }
 
 .btn { font-weight: 500; border-radius: var(--control); box-shadow: none; }
-.field, .panel input:not([type=checkbox]), .panel select { border-radius: var(--control); }
+.field, .panel input:not([type=checkbox]):not([type=radio]), .panel select { border-radius: var(--control); }
 .panel, .detail, .preview-grid .badge-card, .session-box { border: 0; box-shadow: var(--shadow); border-radius: var(--radius); background: #fff; }
 .session-box li { border-radius: var(--control); background: var(--bg); border: 0; }
 .notice { border-radius: var(--control); border-left-width: 0; }
@@ -309,6 +309,52 @@ h1, h2, h3 { font-weight: 500; }
 .shell { height: 100vh; height: 100dvh; grid-template-rows: minmax(0, 1fr); overflow: hidden; }
 .sidebar, .profile, .main { min-height: 0; height: 100%; }
 .content { min-height: 0; overscroll-behavior: contain; }
+
+/* Point of sale, transfers and the customer's registration form */
+.panel.wide { max-width: 860px; margin-bottom: 0; }
+.panel dl { grid-template-columns: max-content 1fr; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
+.inline-select { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.inline-select select { padding: 10px 12px; border: 1px solid #8a8a9c; background: #fff; color: var(--ink); border-radius: var(--control); max-width: 280px; }
+.pos-tickets { list-style: none; margin: 0; padding: 0; display: grid; }
+.pos-tickets li { display: grid; grid-template-columns: minmax(0, 1fr) 90px 80px auto; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ececf3; }
+.pos-name { font-weight: 500; }
+.pos-price { text-align: right; }
+.qty { display: inline-flex; align-items: center; border: 1px solid #8a8a9c; border-radius: var(--control); overflow: hidden; }
+.qty button { width: 40px; height: 40px; border: 0; background: var(--bg); color: var(--ink); font-size: 20px; border-radius: 0; }
+.qty button:disabled { color: #a1a1af; }
+.qty output { min-width: 44px; text-align: center; font-weight: 500; }
+.pos-total { text-align: right; font-size: 18px; }
+.pos-total strong { font-size: 24px; margin-left: 12px; }
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.choice { display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 2px solid #e6e6ef; border-radius: var(--radius); background: #fff; font-size: 14px; font-weight: 400; cursor: pointer; }
+.choice.on { border-color: var(--brand); background: var(--brand-tint); }
+.choice input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--navy); flex: none; }
+.choice strong { display: block; font-size: 16px; font-weight: 500; }
+.attendee-set { border: 1px solid #e6e6ef; border-radius: var(--radius); padding: 16px; margin: 0; }
+.attendee-set legend { padding: 0 6px; font-weight: 500; display: flex; gap: 14px; align-items: center; }
+.pos-codes { display: flex; gap: 24px; flex-wrap: wrap; }
+.pos-codes figure { margin: 0; display: grid; gap: 6px; justify-items: center; font-size: 14px; color: var(--muted); }
+.pos-qr { width: 180px; height: 180px; image-rendering: pixelated; }
+.pick-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pick-list button { width: 100%; display: grid; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid #e6e6ef; background: #fff; color: var(--ink); border-radius: var(--control); }
+.pick-list button:hover { border-color: var(--brand); background: var(--brand-tint); }
+.pick-list strong, .picked strong { font-weight: 500; display: block; }
+.pick-list span, .picked span { font-size: 14px; color: var(--muted); }
+.picked { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; background: var(--brand-tint); border-radius: var(--control); }
+.picked span strong { color: var(--ink); font-size: 16px; }
+.notice.warn { background: #fff3d6; color: #7a4b00; }
+.register { min-height: 100%; background: var(--bg); }
+.register-head { background: var(--brand); color: var(--on-brand); display: flex; align-items: center; gap: 14px; padding: 16px 20px; }
+.register-head img { width: 56px; height: auto; }
+.register-head h1 { font-size: 24px; font-weight: 700; }
+.register-body { max-width: 720px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 16px; }
+.register-form { display: grid; gap: 16px; }
+.register .btn { justify-self: start; text-decoration: none; }
+@media (max-width: 860px) {
+  .pos-tickets li { grid-template-columns: minmax(0, 1fr) auto; }
+  .pos-tickets .hint { display: none; }
+}
 
 /* Badge. 62mm wide to match Brother DK continuous tape. Keep in step with src/badgeImage.js. */
 .badge-wrap { display: grid; gap: 10px; justify-items: start; }

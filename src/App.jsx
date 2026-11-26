@@ -8,6 +8,9 @@ import Search from './screens/Search.jsx';
 import People from './screens/People.jsx';
 import Sessions from './screens/Sessions.jsx';
 import AttendeeDetail from './screens/AttendeeDetail.jsx';
+import Tickets from './screens/Tickets.jsx';
+import Transfers from './screens/Transfers.jsx';
+import Register from './screens/Register.jsx';
 import AttendeePreview from './screens/AttendeePreview.jsx';
 import PrinterSettings from './components/PrinterSettings.jsx';
 import logo from './assets/oems-logo.svg';
@@ -19,8 +22,6 @@ import {
 // Menu items for features that are not built yet. They hold their place in the
 // layout and do nothing.
 const PLACEHOLDERS = [
-  { label: 'Tickets', Icon: TicketIcon },
-  { label: 'Transfers', Icon: TransferIcon },
   { label: 'Staff schedule', Icon: ClockIcon },
   { label: 'Messages', Icon: MessageIcon },
   { label: 'Alerts', Icon: BellIcon },
@@ -99,6 +100,10 @@ export default function App() {
     setNavOpen(false);
   }
 
+  // A customer opening the texted link lands on their own form, with no sign-in.
+  const link = window.location.hash.match(/^#\/register\/(\d+)\/([^/?#]+)/);
+  if (link) return <Register orderId={link[1]} orderKey={decodeURIComponent(link[2])} />;
+
   if (!user) return <Login onDone={setUser} />;
   if (user.preview) return <AttendeePreview onSignOut={() => setUser(null)} />;
 
@@ -108,7 +113,7 @@ export default function App() {
   const here = profile ? 'people' : event ? 'checkin' : page;
   const canGoBack = Boolean(showPrinter || profile || event || page !== 'home');
   const hint = profile ? 'Search is off on this page' : event ? 'Find in this event by name, email or badge code'
-    : page === 'people' ? 'Find an attendee by name, email, phone or badge code' : page === 'sessions' ? 'Find a session by name, room or type' : 'Search attendees and sessions';
+    : page === 'people' ? 'Find an attendee by name, email, phone or badge code' : page === 'sessions' ? 'Find a session by name, room or type' : page === 'tickets' || page === 'transfers' ? 'Search is off on this page' : 'Search attendees and sessions';
 
   return (
     <div className={`shell${navOpen ? ' nav-open' : ''}`}>
@@ -126,6 +131,8 @@ export default function App() {
           </button>
           <button className={`nav-item${here === 'people' ? ' active' : ''}`} onClick={() => go('people')}><UsersIcon /><span>Attendees</span></button>
           <button className={`nav-item${here === 'sessions' ? ' active' : ''}`} onClick={() => go('sessions')}><CalendarIcon /><span>Sessions</span></button>
+          <button className={`nav-item${here === 'tickets' ? ' active' : ''}`} onClick={() => go('tickets')}><TicketIcon /><span>Tickets</span></button>
+          <button className={`nav-item${here === 'transfers' ? ' active' : ''}`} onClick={() => go('transfers')}><TransferIcon /><span>Transfers</span></button>
           <p className="nav-head">Coming soon</p>
           {PLACEHOLDERS.map(({ label, Icon }) => (
             <button key={label} className="nav-item placeholder" disabled><Icon /><span>{label}</span></button>
@@ -149,7 +156,7 @@ export default function App() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={hint}
-              disabled={Boolean(profile)}
+              disabled={Boolean(profile) || (!event && (page === 'tickets' || page === 'transfers'))}
             />
           </label>
           <span className="topbar-space" />
@@ -165,6 +172,10 @@ export default function App() {
               ? <Attendees key={event.id} event={event} openId={openAttendee} refreshKey={refreshKey} onBusy={setBusy} registerBack={registerBack} query={query} onQuery={setQuery} onStats={setStats} onOpenProfile={openProfile} />
               : page === 'people'
                 ? <People query={query} refreshKey={refreshKey} onOpen={openProfile} onStats={setStats} />
+                : page === 'tickets'
+                  ? <Tickets refreshKey={refreshKey} onBusy={setBusy} />
+                  : page === 'transfers'
+                    ? <Transfers refreshKey={refreshKey} />
                 : page === 'sessions'
                   ? <Sessions query={query} refreshKey={refreshKey} onBusy={setBusy} onPick={pick} onStats={setStats} />
                   : query.trim()
