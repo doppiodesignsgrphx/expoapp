@@ -51,8 +51,8 @@ export class ApiError extends Error {
 
 // The API reports failures inside the body ("code": 418) while still answering HTTP 200,
 // so the body code is what decides success.
-async function request(path, { method = 'GET', query, json, form, auth = true } = {}) {
-  const url = new URL(BASE + path);
+async function request(path, { method = 'GET', query, json, form, auth = true, base = BASE } = {}) {
+  const url = new URL(base + path);
   Object.entries(query || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
   });
@@ -158,6 +158,32 @@ export function listEvents({ search, withRegistrations } = {}) {
     'events'
   );
 }
+
+// Ticket options for an event, with price and stock.
+export function listTickets(eventId) {
+  return fetchAll(`/events/${eventId}/tickets`, {}, 'event_tickets');
+}
+
+// Point of sale and transfers. These routes come from the oems-expo-pos site
+// snippet, not from the event plugin.
+const POS_BASE = (import.meta.env.VITE_POS_BASE || BASE.replace(/\/wpem$/, '/oems-expo/v1')).replace(/\/$/, '');
+
+async function pos(path, options) {
+  try {
+    return await request(path, { ...options, base: POS_BASE });
+  } catch (err) {
+    if (/no route/i.test(err.message || '')) throw new ApiError('Ticket sales and transfers are not switched on for this site yet.', 404);
+    throw err;
+  }
+}
+
+export const createPosOrder = (body) => pos('/pos/orders', { method: 'POST', json: body });
+export const markOrderPaid = (orderId, method) => pos(`/pos/orders/${orderId}/paid`, { method: 'POST', json: { method } });
+export const textOrderAgain = (orderId) => pos(`/pos/orders/${orderId}/text`, { method: 'POST', json: {} });
+export const transferTicket = (body) => pos('/transfers', { method: 'POST', json: body });
+// The customer's own form, opened from the texted link. The order key in the link is the pass.
+export const readRegisterForm = (orderId, key) => pos(`/register/${orderId}`, { query: { key }, auth: false });
+export const saveRegisterForm = (orderId, key, attendees) => pos(`/register/${orderId}`, { method: 'POST', query: { key }, json: { attendees }, auth: false });
 
 export function listAttendees(eventId) {
   return fetchAll(`/events/${eventId}/attendees`, {}, 'event_attendees');
