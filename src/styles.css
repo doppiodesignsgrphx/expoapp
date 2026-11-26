@@ -305,6 +305,11 @@ h1, h2, h3 { font-weight: 500; }
   .row-card.session { grid-template-columns: 48px minmax(0, 1fr); }
 }
 
+/* The side panels stay the height of the window. Only the middle section scrolls. */
+.shell { height: 100vh; height: 100dvh; grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.sidebar, .profile, .main { min-height: 0; height: 100%; }
+.content { min-height: 0; overscroll-behavior: contain; }
+
 /* Badge. 62mm wide to match Brother DK continuous tape. Keep in step with src/badgeImage.js. */
 .badge-wrap { display: grid; gap: 10px; justify-items: start; }
 .badge { width: 62mm; height: 100mm; background: #fff; color: #000; border: 0.6mm solid #000; display: flex; flex-direction: column; text-align: center; overflow: hidden; }

@@ -2,12 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { eventTypes, listSessions } from '../api.js';
 import { readCache, writeCache } from '../cache.js';
 
+// Events tagged with this type are the Expo itself, not sessions, so they are left out.
+// Change VITE_EXPO_TYPE if the site names that type differently.
+const EXPO_TYPE = (import.meta.env.VITE_EXPO_TYPE || 'Expo').trim().toLowerCase();
+const isExpo = (ev) => eventTypes(ev).some((t) => t.trim().toLowerCase() === EXPO_TYPE);
+
 const imageOf = (ev) => (Array.isArray(ev.images) ? ev.images[0] : ev.images) || '';
 
-// The Sessions menu: every published event on the site, each tagged with its
-// session type. Picking one opens the same check-in and scanning screen the Expo uses.
+// The Sessions menu: every published event on the site except the Expo itself,
+// each tagged with its session type. Picking one opens the same check-in and scanning screen the Expo uses.
 export default function Sessions({ query = '', refreshKey, onBusy, onPick, onStats }) {
-  const [events, setEvents] = useState(() => readCache('sessions:all') || []);
+  const [events, setEvents] = useState(() => (readCache('sessions:all') || []).filter((ev) => !isExpo(ev)));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const latest = useRef(0);
@@ -21,7 +26,7 @@ export default function Sessions({ query = '', refreshKey, onBusy, onPick, onSta
       .then((list) => {
         if (run !== latest.current) return;
         writeCache('sessions:all', list);
-        setEvents(list);
+        setEvents(list.filter((ev) => !isExpo(ev)));
       })
       .catch((err) => run === latest.current && setError(err.message))
       .finally(() => {
