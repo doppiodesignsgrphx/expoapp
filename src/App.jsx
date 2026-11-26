@@ -11,13 +11,14 @@ import Sessions from './screens/Sessions.jsx';
 import AttendeeDetail from './screens/AttendeeDetail.jsx';
 import Tickets from './screens/Tickets.jsx';
 import Transfers from './screens/Transfers.jsx';
+import Orders from './screens/Orders.jsx';
 import Register from './screens/Register.jsx';
 import AttendeePreview from './screens/AttendeePreview.jsx';
 import PrinterSettings from './components/PrinterSettings.jsx';
 import logo from './assets/oems-logo.svg';
 import {
   BackIcon, BellIcon, CalendarIcon, ChartIcon, CheckIcon, ClockIcon, CloseIcon, FlagIcon, HomeIcon, LogOutIcon,
-  MenuIcon, MessageIcon, PlusIcon, PrinterIcon, RefreshIcon, SearchIcon, SettingsIcon, TicketIcon, TransferIcon, UsersIcon,
+  MenuIcon, MessageIcon, NoteIcon, PlusIcon, PrinterIcon, RefreshIcon, SearchIcon, SettingsIcon, TicketIcon, TransferIcon, UsersIcon,
 } from './icons.jsx';
 
 // Menu items for features that are not built yet. They hold their place in the
@@ -48,7 +49,7 @@ export default function App() {
   const [event, setEvent] = useState(null);
   const [expo, setExpo] = useState(null); // the event Tickets sells for; sessions have no tickets
   const [openAttendee, setOpenAttendee] = useState(null);
-  const [page, setPage] = useState('home'); // home | checkin | tickets | people | sessions | transfers
+  const [page, setPage] = useState('home'); // home | checkin | tickets | orders | people | sessions | transfers
   const [profile, setProfile] = useState(null); // { attendee, event } while an attendee's own page is open
   const [showPrinter, setShowPrinter] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -136,7 +137,7 @@ export default function App() {
   const here = profile ? 'people' : page;
   const canGoBack = Boolean(showPrinter || profile || page !== 'home');
   const hint = profile || page === 'tickets' ? 'Search is off on this page' : page === 'checkin' ? 'Find in this event by name, email or badge code'
-    : page === 'people' ? 'Find an attendee by name, email, phone or badge code' : page === 'sessions' ? 'Find a session by name, room or type' : page === 'transfers' ? 'Search is off on this page' : 'Search attendees and sessions';
+    : page === 'people' ? 'Find an attendee by name, email, phone or badge code' : page === 'sessions' ? 'Find a session by name, room or type' : page === 'transfers' ? 'Search is off on this page' : page === 'orders' ? 'Find an order by name, order number, phone or email' : 'Search attendees and sessions';
 
   return (
     <div className={`shell${navOpen ? ' nav-open' : ''}`}>
@@ -155,6 +156,7 @@ export default function App() {
           <button className={`nav-item${here === 'people' ? ' active' : ''}`} onClick={() => go('people')}><UsersIcon /><span>Attendees</span></button>
           <button className={`nav-item${here === 'sessions' ? ' active' : ''}`} onClick={() => go('sessions')}><CalendarIcon /><span>Sessions</span></button>
           <button className={`nav-item${here === 'tickets' ? ' active' : ''}`} onClick={() => go('tickets')} disabled={!expo} title={expo ? '' : 'Open the Expo on Home first'}><TicketIcon /><span>Tickets</span></button>
+          <button className={`nav-item${here === 'orders' ? ' active' : ''}`} onClick={() => go('orders')} disabled={!expo} title={expo ? '' : 'Open the Expo on Home first'}><NoteIcon /><span>Registration</span></button>
           <button className={`nav-item${here === 'transfers' ? ' active' : ''}`} onClick={() => go('transfers')}><TransferIcon /><span>Transfers</span></button>
           <p className="nav-head">Coming soon</p>
           {PLACEHOLDERS.map(({ label, Icon }) => (
@@ -197,6 +199,8 @@ export default function App() {
               ? <Attendees key={event.id} event={event} openId={openAttendee} refreshKey={refreshKey} onBusy={setBusy} registerBack={registerBack} query={query} onQuery={setQuery} onStats={setStats} onOpenProfile={openProfile} />
               : page === 'people'
                 ? <People query={query} refreshKey={refreshKey} onOpen={openProfile} onStats={setStats} />
+                : page === 'orders' && expo
+                  ? <Orders key={expo.id} event={expo} query={query} refreshKey={refreshKey} onBusy={setBusy} registerBack={registerBack} onOpenProfile={openProfile} />
                 : page === 'transfers'
                     ? <Transfers refreshKey={refreshKey} />
                 : page === 'sessions'
