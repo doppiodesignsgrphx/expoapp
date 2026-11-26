@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import { createPosOrder, listTickets, markOrderPaid, textOrderAgain } from '../api.js';
-import { clearCache } from '../cache.js';
+import { createPosOrder, isCheckedIn, listAttendees, listTickets, markOrderPaid, textOrderAgain } from '../api.js';
+import { clearCache, readCache, writeCache } from '../cache.js';
 
 // The point of sale. One page, top to bottom:
 //   1. pick ticket quantities from the open event's ticket options
@@ -32,7 +32,7 @@ function Qr({ value, label }) {
 }
 
 // Sells for the event that is open, the same one Check-in works on.
-export default function Tickets({ event, refreshKey, onBusy }) {
+export default function Tickets({ event, refreshKey, onBusy, onStats }) {
   const eventId = event.id;
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +45,19 @@ export default function Tickets({ event, refreshKey, onBusy }) {
   const [error, setError] = useState('');
   const [sale, setSale] = useState(null);
   const [note, setNote] = useState('');
+  const [sold, setSold] = useState(0);
+
+  // The side panel keeps this event's counts, and picks up each new sale.
+  useEffect(() => {
+    let live = true;
+    const key = `attendees:${event.id}`;
+    const show = (list) => onStats?.({ label: event.name, registered: list.length, checkedIn: list.filter(isCheckedIn).length });
+    const cached = readCache(key);
+    if (cached) show(cached);
+    listAttendees(event.id).then((list) => { if (live) { writeCache(key, list); show(list); } }).catch(() => {});
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event.id, refreshKey, sold]);
 
   useEffect(() => {
     let live = true;
@@ -91,6 +104,7 @@ export default function Tickets({ event, refreshKey, onBusy }) {
       });
       clearCache(); // new registrations: lists must be read again
       setSale(result);
+      setSold((n) => n + 1);
       setNote('');
     } catch (err) {
       setError(err.message);

@@ -44,7 +44,7 @@ export default function App() {
   const [user, setUser] = useState(session.token ? session.user : null);
   const [event, setEvent] = useState(null);
   const [openAttendee, setOpenAttendee] = useState(null);
-  const [page, setPage] = useState('home'); // home | people | sessions
+  const [page, setPage] = useState('home'); // home | checkin | tickets | people | sessions | transfers
   const [profile, setProfile] = useState(null); // { attendee, event } while an attendee's own page is open
   const [showPrinter, setShowPrinter] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -64,11 +64,21 @@ export default function App() {
   // The search box means something different on each screen, so clear it on the way in and out.
   useEffect(() => setQuery(''), [event?.id, page, profile?.attendee?.id]);
 
-  function pick(ev, attendeeId = null) {
+  // The pages visited, so Back returns to the one before. The open event stays
+  // selected until another is picked: Check-in and Tickets both work on it.
+  const trail = useRef([]);
+  function go(next) {
+    if (next !== page) trail.current.push(page);
+    setShowPrinter(false);
     setProfile(null);
+    setPage(next);
+    setNavOpen(false);
+  }
+
+  function pick(ev, attendeeId = null) {
     setOpenAttendee(attendeeId);
     setEvent(ev);
-    setPage((p) => (p === 'tickets' ? 'home' : p));
+    go('checkin');
   }
 
   function openProfile(attendee, ev) {
@@ -79,21 +89,12 @@ export default function App() {
     if (showPrinter) return setShowPrinter(false);
     if (profile) return setProfile(null);
     if (screenBack.current && screenBack.current()) return undefined;
-    if (event && page === 'tickets') return setPage('home'); // back to this event's check-in
-    if (event) return setEvent(null);
-    return setPage('home');
-  }
-
-  function go(next) {
-    setShowPrinter(false);
-    setProfile(null);
-    setEvent(null);
-    setPage(next);
-    setNavOpen(false);
+    return setPage(trail.current.pop() || 'home');
   }
 
   function signOut() {
     session.clear();
+    trail.current = [];
     setUser(null);
     setEvent(null);
     setProfile(null);
@@ -112,11 +113,9 @@ export default function App() {
   const name = displayName(user);
   const remaining = Math.max(0, stats.registered - stats.checkedIn);
   // Which menu item is lit: an open attendee page belongs to Attendees, an open event to Check-in.
-  // Tickets sells for the open event, so it stays lit only while one is open.
-  const selling = Boolean(event) && page === 'tickets';
-  const here = profile ? 'people' : selling ? 'tickets' : event ? 'checkin' : page;
-  const canGoBack = Boolean(showPrinter || profile || event || page !== 'home');
-  const hint = profile || selling ? 'Search is off on this page' : event ? 'Find in this event by name, email or badge code'
+  const here = profile ? 'people' : page;
+  const canGoBack = Boolean(showPrinter || profile || page !== 'home');
+  const hint = profile || page === 'tickets' ? 'Search is off on this page' : page === 'checkin' ? 'Find in this event by name, email or badge code'
     : page === 'people' ? 'Find an attendee by name, email, phone or badge code' : page === 'sessions' ? 'Find a session by name, room or type' : page === 'transfers' ? 'Search is off on this page' : 'Search attendees and sessions';
 
   return (
@@ -130,12 +129,12 @@ export default function App() {
         <nav aria-label="Main">
           <p className="nav-head">Menu</p>
           <button className={`nav-item${here === 'home' ? ' active' : ''}`} onClick={() => go('home')}><HomeIcon /><span>Home</span></button>
-          <button className={`nav-item${here === 'checkin' ? ' active' : ''}`} onClick={() => { setProfile(null); setPage((p) => (p === 'tickets' ? 'home' : p)); setNavOpen(false); }} disabled={!event} title={event ? '' : 'Pick an event or session first'}>
+          <button className={`nav-item${here === 'checkin' ? ' active' : ''}`} onClick={() => go('checkin')} disabled={!event} title={event ? '' : 'Pick an event or session first'}>
             <CheckIcon /><span>Check-in</span>
           </button>
           <button className={`nav-item${here === 'people' ? ' active' : ''}`} onClick={() => go('people')}><UsersIcon /><span>Attendees</span></button>
           <button className={`nav-item${here === 'sessions' ? ' active' : ''}`} onClick={() => go('sessions')}><CalendarIcon /><span>Sessions</span></button>
-          <button className={`nav-item${here === 'tickets' ? ' active' : ''}`} onClick={() => { setProfile(null); setShowPrinter(false); setPage('tickets'); setNavOpen(false); }} disabled={!event} title={event ? '' : 'Pick an event on Home first'}><TicketIcon /><span>Tickets</span></button>
+          <button className={`nav-item${here === 'tickets' ? ' active' : ''}`} onClick={() => go('tickets')} disabled={!event} title={event ? '' : 'Pick an event on Home first'}><TicketIcon /><span>Tickets</span></button>
           <button className={`nav-item${here === 'transfers' ? ' active' : ''}`} onClick={() => go('transfers')}><TransferIcon /><span>Transfers</span></button>
           <p className="nav-head">Coming soon</p>
           {PLACEHOLDERS.map(({ label, Icon }) => (
@@ -160,7 +159,7 @@ export default function App() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={hint}
-              disabled={Boolean(profile) || selling || (!event && page === 'transfers')}
+              disabled={Boolean(profile) || page === 'tickets' || page === 'transfers'}
             />
           </label>
           <span className="topbar-space" />
@@ -172,9 +171,9 @@ export default function App() {
           {showPrinter && <PrinterSettings onClose={() => setShowPrinter(false)} />}
           {profile
             ? <AttendeeDetail key={`${profile.event.id}:${profile.attendee.id}`} attendee={profile.attendee} event={profile.event} refreshKey={refreshKey} onOpenEvent={pick} />
-            : selling
-              ? <Tickets key={event.id} event={event} refreshKey={refreshKey} onBusy={setBusy} />
-            : event
+            : page === 'tickets' && event
+              ? <Tickets key={event.id} event={event} refreshKey={refreshKey} onBusy={setBusy} onStats={setStats} />
+            : page === 'checkin' && event
               ? <Attendees key={event.id} event={event} openId={openAttendee} refreshKey={refreshKey} onBusy={setBusy} registerBack={registerBack} query={query} onQuery={setQuery} onStats={setStats} onOpenProfile={openProfile} />
               : page === 'people'
                 ? <People query={query} refreshKey={refreshKey} onOpen={openProfile} onStats={setStats} />
