@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { session } from './api.js';
+import { eventTypes, listSessions, session } from './api.js';
+import { readCache, writeCache } from './cache.js';
 import { useDesktop } from './desktop.js';
 import Login from './screens/Login.jsx';
 import Events from './screens/Events.jsx';
@@ -40,9 +41,12 @@ function displayName(user) {
 }
 const initials = (name) => name.split(/[\s._@-]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || 'OS';
 
+const EXPO_TYPE = (import.meta.env.VITE_EXPO_TYPE || 'Expo').trim().toLowerCase();
+
 export default function App() {
   const [user, setUser] = useState(session.token ? session.user : null);
   const [event, setEvent] = useState(null);
+  const [expo, setExpo] = useState(null); // the event Tickets sells for; sessions have no tickets
   const [openAttendee, setOpenAttendee] = useState(null);
   const [page, setPage] = useState('home'); // home | checkin | tickets | people | sessions | transfers
   const [profile, setProfile] = useState(null); // { attendee, event } while an attendee's own page is open
@@ -79,6 +83,21 @@ export default function App() {
     setOpenAttendee(attendeeId);
     setEvent(ev);
     go('checkin');
+    tether(ev);
+  }
+
+  // Tickets belongs to the Expo. Opening a session (any event typed as something
+  // other than the Expo) leaves the ticket event as it was.
+  async function tether(ev) {
+    let tagged = eventTypes(ev).length ? ev : (readCache('sessions:all') || []).find((x) => x.id === ev.id);
+    if (!tagged) {
+      try {
+        const list = await listSessions();
+        writeCache('sessions:all', list);
+        tagged = list.find((x) => x.id === ev.id);
+      } catch { /* leave Tickets as it was */ return; }
+    }
+    if (eventTypes(tagged || ev).every((t) => t.trim().toLowerCase() === EXPO_TYPE)) setExpo(ev);
   }
 
   function openProfile(attendee, ev) {
@@ -95,6 +114,7 @@ export default function App() {
   function signOut() {
     session.clear();
     trail.current = [];
+    setExpo(null);
     setUser(null);
     setEvent(null);
     setProfile(null);
@@ -134,7 +154,7 @@ export default function App() {
           </button>
           <button className={`nav-item${here === 'people' ? ' active' : ''}`} onClick={() => go('people')}><UsersIcon /><span>Attendees</span></button>
           <button className={`nav-item${here === 'sessions' ? ' active' : ''}`} onClick={() => go('sessions')}><CalendarIcon /><span>Sessions</span></button>
-          <button className={`nav-item${here === 'tickets' ? ' active' : ''}`} onClick={() => go('tickets')} disabled={!event} title={event ? '' : 'Pick an event on Home first'}><TicketIcon /><span>Tickets</span></button>
+          <button className={`nav-item${here === 'tickets' ? ' active' : ''}`} onClick={() => go('tickets')} disabled={!expo} title={expo ? '' : 'Open the Expo on Home first'}><TicketIcon /><span>Tickets</span></button>
           <button className={`nav-item${here === 'transfers' ? ' active' : ''}`} onClick={() => go('transfers')}><TransferIcon /><span>Transfers</span></button>
           <p className="nav-head">Coming soon</p>
           {PLACEHOLDERS.map(({ label, Icon }) => (
@@ -171,8 +191,8 @@ export default function App() {
           {showPrinter && <PrinterSettings onClose={() => setShowPrinter(false)} />}
           {profile
             ? <AttendeeDetail key={`${profile.event.id}:${profile.attendee.id}`} attendee={profile.attendee} event={profile.event} refreshKey={refreshKey} onOpenEvent={pick} />
-            : page === 'tickets' && event
-              ? <Tickets key={event.id} event={event} refreshKey={refreshKey} onBusy={setBusy} onStats={setStats} />
+            : page === 'tickets' && expo
+              ? <Tickets key={expo.id} event={expo} refreshKey={refreshKey} onBusy={setBusy} onStats={setStats} />
             : page === 'checkin' && event
               ? <Attendees key={event.id} event={event} openId={openAttendee} refreshKey={refreshKey} onBusy={setBusy} registerBack={registerBack} query={query} onQuery={setQuery} onStats={setStats} onOpenProfile={openProfile} />
               : page === 'people'
