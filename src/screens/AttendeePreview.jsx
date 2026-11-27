@@ -28,7 +28,6 @@ const MENU = [
   { label: 'Bookmarked sessions', Icon: BookmarkIcon },
   { label: 'Notebook', Icon: NoteIcon },
   { label: 'Expo map', Icon: MapIcon },
-  { label: 'Merch', Icon: BagIcon },
   { label: 'Messages', Icon: MessageIcon },
   { label: 'Alerts', Icon: BellIcon },
   { label: 'Buy a ticket', Icon: CardIcon },

@@ -223,8 +223,12 @@ export default function Orders({ event, query = '', refreshKey, onBusy, register
 
             <section className="panel wide">
               <h2 className="section-title">Notes</h2>
-              <form className="note-form" onSubmit={(e) => { e.preventDefault(); act(() => addOrderNote(o.order_id, draft), 'Note added.').then(() => setDraft('')); }}>
-                <label>Add a note<textarea rows="2" value={draft} onChange={(e) => setDraft(e.target.value)} /></label>
+              <form className="note-form" onSubmit={(e) => { e.preventDefault(); if (busy || !draft.trim()) return; act(() => addOrderNote(o.order_id, draft), 'Note added.').then(() => setDraft('')); }}>
+                <label>Add a note
+                  {/* Enter adds the note; Shift+Enter starts a new line */}
+                  <textarea rows="2" value={draft} onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form.requestSubmit(); } }} />
+                </label>
                 <button className="btn secondary" disabled={busy || !draft.trim()}>Add note</button>
               </form>
               {o.notes.length === 0 ? <p className="empty">No notes on this order.</p> : (

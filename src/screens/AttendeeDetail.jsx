@@ -93,7 +93,7 @@ export default function AttendeeDetail({ attendee, event, refreshKey, onOpenEven
         </div>
       </section>
 
-      <div className="preview-grid">
+      <div className="preview-grid stacked">
         <section className="session-box">
           <h4>Registered sessions <span>{regs.length}</span></h4>
           <ul>
